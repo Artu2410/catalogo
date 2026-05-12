@@ -41,7 +41,7 @@ export default function Login() {
       <div className="card animate-fade-in" style={{ maxWidth: '400px', width: '100%', padding: '3rem 2rem' }}>
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div className="logo" style={{ justifyContent: 'center', marginBottom: '1rem', fontSize: '2rem' }}>
-            <Activity color="#00A896" size={32} />
+            <img src="/images/logo.png" alt="KAREH Logo" style={{ height: '48px', width: 'auto' }} />
             KAREH
           </div>
           <h1 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Iniciar Sesión</h1>

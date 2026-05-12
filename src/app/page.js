@@ -83,7 +83,7 @@ export default function Home() {
       <header className="header">
         <div className="container header-content">
           <div className="logo">
-            <Activity color="#00A896" size={28} />
+            <img src="/images/logo.png" alt="KAREH Logo" style={{ height: '40px', width: 'auto' }} />
             KAREH
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
