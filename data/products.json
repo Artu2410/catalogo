@@ -8,7 +8,7 @@
     "cashPrice": 25000,
     "transferPrice": 27900,
     "url": "https://hisport202.mitiendanube.com/productos/set-x3-banda-circula-tela-28044-50/",
-    "image": "/images/bandas_tela.png"
+    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/banhs28044-c34f9c32e3406155e217765359280831-1024-1024.webp"
   },
   {
     "id": "2",
@@ -19,7 +19,7 @@
     "cashPrice": 13500,
     "transferPrice": 14900,
     "url": "https://hisport202.mitiendanube.com/search/?q=SET+BANDA+AZUL+X5+TPE+17321-200",
-    "image": "/images/bandas_tpe.png"
+    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/banhs17321-b7d7b5f8cd8764896c17510467896434-1024-1024.webp"
   },
   {
     "id": "3",
@@ -30,7 +30,7 @@
     "cashPrice": 8000,
     "transferPrice": 8900,
     "url": "https://hisport202.mitiendanube.com/productos/tirabanda-abierta-azul-15001500-55mm-17690-100/",
-    "image": "/images/tirabanda.png"
+    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/tirhs17690-c4acebaccb089b1d5c17576145888207-1024-1024.webp"
   },
   {
     "id": "4",
@@ -41,7 +41,7 @@
     "cashPrice": 22500,
     "transferPrice": 24900,
     "url": "https://hisport202.mitiendanube.com/search/?q=KIT+HAND+GRIP+X5+12122-80",
-    "image": "/images/hand_grip.png"
+    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/grihs12122-ca0f8d245039b186b817510456188787-1024-1024.webp"
   },
   {
     "id": "5",
@@ -52,7 +52,7 @@
     "cashPrice": 11500,
     "transferPrice": 12900,
     "url": "https://hisport202.mitiendanube.com/search/?q=MINI+BOZU+C%2FPINCHE+BOLUO+8*16CM+11989-50",
-    "image": "/images/mini_bozu.png"
+    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/pelhs11989-992aee325955abcb2317719463235720-1024-1024.webp"
   },
   {
     "id": "6",
@@ -63,6 +63,6 @@
     "cashPrice": 3500,
     "transferPrice": 4000,
     "url": "https://hisport202.mitiendanube.com/search/?q=BOLA+MASAJES+SOFT+7.5CM+06017-300",
-    "image": "/images/pelota_masaje.png"
+    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/bolhs06017-6dab41c15bba37d0af17510444968076-1024-1024.webp"
   }
 ]
