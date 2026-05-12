@@ -159,11 +159,20 @@ export default function Home() {
                     height: '200px', 
                     borderRadius: '8px', 
                     marginBottom: '1rem',
-                    backgroundImage: `url(${product.image})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundColor: 'rgba(255,255,255,0.1)'
-                  }} />
+                    overflow: 'hidden'
+                  }}>
+                    <div 
+                      className="product-image"
+                      style={{ 
+                        width: '100%',
+                        height: '100%',
+                        backgroundImage: `url(${product.image})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundColor: 'rgba(255,255,255,0.1)'
+                      }} 
+                    />
+                  </div>
                 ) : (
                   <div style={{ 
                     width: '100%', 

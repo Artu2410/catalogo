@@ -164,6 +164,16 @@ button {
   background: linear-gradient(90deg, var(--accent-color), #8a2be2);
   opacity: 0;
   transition: opacity 0.3s ease;
+  z-index: 2;
+}
+
+.product-image {
+  transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.product-card:hover .product-image,
+.product-card:active .product-image {
+  transform: scale(1.1);
 }
 
 .product-card:hover {
