@@ -35,8 +35,12 @@ export default function Login() {
   const handleOAuth = (provider) => {
     if (provider === "Google") {
       signIn("google", { callbackUrl: "/admin" });
+    } else if (provider === "Facebook") {
+      signIn("facebook", { callbackUrl: "/admin" });
+    } else if (provider === "Outlook") {
+      signIn("azure-ad", { callbackUrl: "/admin" });
     } else {
-      alert(`La autenticación con ${provider} requiere configuración de claves (Client ID/Secret) en el servidor. Por ahora, usa email y contraseña.`);
+      alert(`La autenticación con ${provider} requiere un servicio de SMS (como Twilio o Firebase) para enviar códigos al celular. Por ahora, usa las otras opciones.`);
     }
   };
 
