@@ -20,7 +20,6 @@ export default function AdminPage() {
     costPrice: 0,
     cashPrice: 0,
     transferPrice: 0,
-    url: '',
     image: ''
   });
 
@@ -63,7 +62,6 @@ export default function AdminPage() {
       costPrice: 0,
       cashPrice: 0,
       transferPrice: 0,
-      url: '',
       image: ''
     });
     setEditingId(null);
@@ -216,17 +214,6 @@ export default function AdminPage() {
                 required 
               />
             </div>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">URL del Producto (TiendaNube)</label>
-            <input 
-              type="url" 
-              className="form-control" 
-              name="url" 
-              value={formData.url} 
-              onChange={handleInputChange} 
-            />
           </div>
 
           <div className="form-group">

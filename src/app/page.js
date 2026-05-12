@@ -216,11 +216,6 @@ export default function Home() {
                     <ShoppingBag size={18} />
                     {product.stock > 0 ? 'Agregar al Carrito' : 'Sin Stock'}
                   </button>
-                  {product.url && (
-                    <a href={product.url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary">
-                      Ver en TiendaNube
-                    </a>
-                  )}
                 </div>
               </div>
             ))}
