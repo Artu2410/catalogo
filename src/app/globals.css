@@ -209,6 +209,12 @@ button {
   white-space: nowrap;
 }
 
+.badge-danger {
+  background-color: rgba(248, 81, 73, 0.2) !important;
+  color: var(--danger-color) !important;
+  border: 1px solid var(--danger-color);
+}
+
 .product-desc {
   color: var(--text-secondary);
   font-size: 0.9rem;

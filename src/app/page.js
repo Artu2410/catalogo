@@ -191,7 +191,9 @@ export default function Home() {
                 
                 <div className="product-header">
                   <h3 className="product-title">{product.name}</h3>
-                  <span className="product-badge">Stock: {product.stock}</span>
+                  <span className={`product-badge ${product.stock <= 0 ? 'badge-danger' : ''}`}>
+                    {product.stock <= 0 ? 'SIN STOCK' : `Stock: ${product.stock}`}
+                  </span>
                 </div>
                 
                 <p className="product-desc">{product.description}</p>
@@ -262,6 +264,17 @@ export default function Home() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {cart.map(item => (
                     <div key={item.id} style={{ display: 'flex', gap: '1rem', backgroundColor: 'var(--secondary-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                      {item.image && (
+                        <div style={{ 
+                          width: '60px', 
+                          height: '60px', 
+                          borderRadius: '4px', 
+                          backgroundImage: `url(${item.image})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          flexShrink: 0
+                        }} />
+                      )}
                       <div style={{ flex: 1 }}>
                         <h4 style={{ marginBottom: '0.25rem' }}>{item.name}</h4>
                         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>

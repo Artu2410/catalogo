@@ -99,6 +99,22 @@ export default function AdminPage() {
     }
   };
 
+  const updateStock = async (product, delta) => {
+    const newStock = Math.max(0, product.stock + delta);
+    if (newStock === product.stock) return;
+
+    try {
+      await fetch(`/api/products/${product.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...product, stock: newStock })
+      });
+      await fetchProducts();
+    } catch (err) {
+      console.error("Failed to update stock", err);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm('¿Estás seguro de que quieres eliminar este producto?')) return;
     
@@ -267,7 +283,25 @@ export default function AdminPage() {
                 {products.map(product => (
                   <tr key={product.id} style={{ borderBottom: '1px solid rgba(48, 54, 61, 0.5)' }}>
                     <td style={{ padding: '1rem 0', fontWeight: '600' }}>{product.name}</td>
-                    <td>{product.stock}</td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <button 
+                          onClick={() => updateStock(product, -1)}
+                          style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', color: 'white', backgroundColor: 'transparent' }}
+                        >
+                          -
+                        </button>
+                        <span style={{ minWidth: '20px', textAlign: 'center', color: product.stock <= 0 ? 'var(--danger-color)' : 'inherit', fontWeight: product.stock <= 0 ? 'bold' : 'normal' }}>
+                          {product.stock}
+                        </span>
+                        <button 
+                          onClick={() => updateStock(product, 1)}
+                          style={{ padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border-color)', color: 'white', backgroundColor: 'transparent' }}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </td>
                     <td>${product.costPrice}</td>
                     <td>${product.cashPrice}</td>
                     <td>${product.transferPrice}</td>
