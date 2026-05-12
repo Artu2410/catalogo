@@ -33,7 +33,11 @@ export default function Login() {
   };
 
   const handleOAuth = (provider) => {
-    alert(`La autenticación con ${provider} requiere configuración de claves (Client ID/Secret) en el servidor. Por ahora, usa email y contraseña.`);
+    if (provider === "Google") {
+      signIn("google", { callbackUrl: "/admin" });
+    } else {
+      alert(`La autenticación con ${provider} requiere configuración de claves (Client ID/Secret) en el servidor. Por ahora, usa email y contraseña.`);
+    }
   };
 
   return (
