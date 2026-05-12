@@ -1,0 +1,68 @@
+[
+  {
+    "id": "1",
+    "name": "SET BANDAS TELA (X3)",
+    "description": "Set x3 banda circular de tela",
+    "stock": 5,
+    "costPrice": 14500,
+    "cashPrice": 25000,
+    "transferPrice": 27900,
+    "url": "https://hisport202.mitiendanube.com/productos/set-x3-banda-circula-tela-28044-50/",
+    "image": "/images/bandas_tela.png"
+  },
+  {
+    "id": "2",
+    "name": "BANDAS (X5)",
+    "description": "Set banda azul x5 TPE",
+    "stock": 4,
+    "costPrice": 6100,
+    "cashPrice": 13500,
+    "transferPrice": 14900,
+    "url": "https://hisport202.mitiendanube.com/search/?q=SET+BANDA+AZUL+X5+TPE+17321-200",
+    "image": "/images/bandas_tpe.png"
+  },
+  {
+    "id": "3",
+    "name": "TIRABANDAS",
+    "description": "Tirabanda abierta azul 1500*1500*55mm",
+    "stock": 3,
+    "costPrice": 4100,
+    "cashPrice": 8000,
+    "transferPrice": 8900,
+    "url": "https://hisport202.mitiendanube.com/productos/tirabanda-abierta-azul-15001500-55mm-17690-100/",
+    "image": "/images/tirabanda.png"
+  },
+  {
+    "id": "4",
+    "name": "HAND GRIP",
+    "description": "Kit hand grip x5",
+    "stock": 2,
+    "costPrice": 14500,
+    "cashPrice": 22500,
+    "transferPrice": 24900,
+    "url": "https://hisport202.mitiendanube.com/search/?q=KIT+HAND+GRIP+X5+12122-80",
+    "image": "/images/hand_grip.png"
+  },
+  {
+    "id": "5",
+    "name": "MINI BOZU",
+    "description": "Mini bozu con pinche boluo 8*16cm",
+    "stock": 2,
+    "costPrice": 6100,
+    "cashPrice": 11500,
+    "transferPrice": 12900,
+    "url": "https://hisport202.mitiendanube.com/search/?q=MINI+BOZU+C%2FPINCHE+BOLUO+8*16CM+11989-50",
+    "image": "/images/mini_bozu.png"
+  },
+  {
+    "id": "6",
+    "name": "PELOTAS MASAJE",
+    "description": "Bola masajes soft 7.5cm",
+    "stock": 2,
+    "costPrice": 2500,
+    "cashPrice": 3500,
+    "transferPrice": 4000,
+    "url": "https://hisport202.mitiendanube.com/search/?q=BOLA+MASAJES+SOFT+7.5CM+06017-300",
+    "image": "/images/pelota_masaje.png"
+  }
+]
