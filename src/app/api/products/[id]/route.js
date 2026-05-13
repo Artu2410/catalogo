@@ -22,7 +22,7 @@ async function getProducts() {
 
 export async function PUT(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const updatedData = await request.json();
     const products = await getProducts();
     
@@ -42,7 +42,7 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const products = await getProducts();
     
     const filteredProducts = products.filter(p => p.id !== id);
