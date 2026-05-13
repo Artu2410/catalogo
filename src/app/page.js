@@ -154,23 +154,11 @@ export default function Home() {
                 style={{ animationDelay: `${0.1 * (index + 3)}s` }}
               >
                 {product.image ? (
-                  <div style={{ 
-                    width: '100%', 
-                    height: '200px', 
-                    borderRadius: '8px', 
-                    marginBottom: '1rem',
-                    overflow: 'hidden'
-                  }}>
-                    <div 
+                  <div className="product-image-container">
+                    <img 
+                      src={product.image} 
+                      alt={product.name}
                       className="product-image"
-                      style={{ 
-                        width: '100%',
-                        height: '100%',
-                        backgroundImage: `url(${product.image})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        backgroundColor: 'rgba(255,255,255,0.1)'
-                      }} 
                     />
                   </div>
                 ) : (
@@ -268,12 +256,20 @@ export default function Home() {
                         <div style={{ 
                           width: '60px', 
                           height: '60px', 
-                          borderRadius: '4px', 
-                          backgroundImage: `url(${item.image})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                          flexShrink: 0
-                        }} />
+                          borderRadius: '8px', 
+                          overflow: 'hidden',
+                          backgroundColor: 'rgba(255,255,255,0.05)',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <img 
+                            src={item.image} 
+                            alt={item.name} 
+                            style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '2px' }} 
+                          />
+                        </div>
                       )}
                       <div style={{ flex: 1 }}>
                         <h4 style={{ marginBottom: '0.25rem' }}>{item.name}</h4>
