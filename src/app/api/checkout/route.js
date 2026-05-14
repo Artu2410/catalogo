@@ -1,10 +1,38 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import fs from 'fs/promises';
+import path from 'path';
+
+const productsFilePath = path.join(process.cwd(), 'data', 'products.json');
 
 export async function POST(request) {
   try {
     const data = await request.json();
     const { user, cart, totalEfectivo, totalTransf } = data;
+
+    // Actualizar stock en productos.json
+    try {
+      const productsData = await fs.readFile(productsFilePath, 'utf8');
+      let products = JSON.parse(productsData);
+      
+      let stockUpdated = false;
+      
+      cart.forEach(item => {
+        const productIndex = products.findIndex(p => p.id === item.id);
+        if (productIndex !== -1) {
+          // Bajamos el stock (asegurándonos de no bajar de 0 si es posible)
+          products[productIndex].stock = Math.max(0, products[productIndex].stock - item.quantity);
+          stockUpdated = true;
+        }
+      });
+      
+      if (stockUpdated) {
+        await fs.writeFile(productsFilePath, JSON.stringify(products, null, 2));
+      }
+    } catch (err) {
+      console.error("Error al actualizar stock:", err);
+      // Continuamos con el envío del mail aunque falle el stock
+    }
 
     // We check if environment variables are set. If not, we still return success 
     // but log it so the developer knows it needs configuration.
