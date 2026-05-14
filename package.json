@@ -2,6 +2,8 @@
   "name": "kareh-catalogo",
   "version": "0.1.0",
   "private": true,
+  "author": "jose arturo azocar perez",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

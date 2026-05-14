@@ -220,6 +220,12 @@ export default function Home() {
         )}
       </main>
 
+      <footer className="footer animate-fade-in" style={{ animationDelay: '0.4s' }}>
+        <div className="container">
+          <p>KAREH © 2026 Todos los derechos reservados</p>
+        </div>
+      </footer>
+
       {/* Shopping Cart Modal/Sidebar */}
       {isCartOpen && (
         <div style={{
