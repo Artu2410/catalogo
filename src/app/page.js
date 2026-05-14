@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { ShoppingBag, Search, ShoppingCart, Activity, X, Plus, Minus, Check, Image as ImageIcon } from 'lucide-react';
+import { ShoppingBag, Search, ShoppingCart, Activity, X, Plus, Minus, Check, Image as ImageIcon, Filter } from 'lucide-react';
 import Link from 'next/link';
 import { useCartStore } from './store/cartStore';
 
@@ -9,6 +9,7 @@ export default function Home() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('relevant');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckout, setIsCheckout] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -43,10 +44,18 @@ export default function Home() {
     }).format(price);
   };
 
-  const filteredProducts = products.filter(product => 
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = products
+    .filter(product => 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+      if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
+      if (sortBy === 'price-asc') return a.cashPrice - b.cashPrice;
+      if (sortBy === 'price-desc') return b.cashPrice - a.cashPrice;
+      return 0; // relevant
+    });
 
   const cartTotalEfectivo = cart.reduce((total, item) => total + (item.cashPrice * item.quantity), 0);
   const cartTotalTransf = cart.reduce((total, item) => total + (item.transferPrice * item.quantity), 0);
@@ -128,17 +137,31 @@ export default function Home() {
           Equipamiento profesional para rehabilitación y entrenamiento
         </p>
 
-        <div className="card animate-fade-in" style={{ animationDelay: '0.2s', padding: '1rem', marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className="search-sort-container animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <div className="search-box">
             <Search color="#8b949e" size={20} />
             <input 
               type="text" 
-              className="form-control" 
+              className="search-input" 
               placeholder="Buscar productos..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ border: 'none', background: 'transparent', padding: 0 }}
             />
+          </div>
+          
+          <div className="sort-box">
+            <Filter color="#8b949e" size={18} />
+            <select 
+              className="sort-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="relevant">Más relevantes</option>
+              <option value="name-asc">Nombre: A - Z</option>
+              <option value="name-desc">Nombre: Z - A</option>
+              <option value="price-asc">Precio: Menor a Mayor</option>
+              <option value="price-desc">Precio: Mayor a Menor</option>
+            </select>
           </div>
         </div>
 
@@ -163,17 +186,7 @@ export default function Home() {
                     />
                   </div>
                 ) : (
-                  <div style={{ 
-                    width: '100%', 
-                    height: '200px', 
-                    borderRadius: '8px', 
-                    marginBottom: '1rem',
-                    backgroundColor: 'rgba(255,255,255,0.05)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'var(--text-secondary)'
-                  }}>
+                  <div className="product-image-placeholder">
                     <ImageIcon size={48} opacity={0.5} />
                   </div>
                 )}
