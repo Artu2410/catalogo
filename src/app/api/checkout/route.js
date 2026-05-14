@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import fs from 'fs/promises';
-import path from 'path';
-
-const productsFilePath = path.join(process.cwd(), 'data', 'products.json');
+import { sql } from '@vercel/postgres';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,45 +10,29 @@ export async function POST(request) {
     const { user, cart, totalEfectivo, totalTransf } = data;
 
     console.log("Procesando pedido para:", user.email);
-    console.log("Items en carrito:", cart.map(i => `${i.name} (x${i.quantity})`).join(", "));
 
-    // Actualizar stock en productos.json
+    // 1. Actualizar stock en Postgres
     try {
-      const productsData = await fs.readFile(productsFilePath, 'utf8');
-      let products = JSON.parse(productsData);
-      
-      let stockUpdated = false;
-      
-      cart.forEach(item => {
-        const productIndex = products.findIndex(p => p.id === item.id);
-        if (productIndex !== -1) {
-          // Bajamos el stock (asegurándonos de no bajar de 0 si es posible)
-          products[productIndex].stock = Math.max(0, products[productIndex].stock - item.quantity);
-          stockUpdated = true;
-        }
-      });
-      
-      if (stockUpdated) {
-        await fs.writeFile(productsFilePath, JSON.stringify(products, null, 2));
-        console.log("Stock actualizado correctamente en products.json");
-      } else {
-        console.warn("No se encontró ningún producto coincidente para actualizar stock");
+      for (const item of cart) {
+        await sql`
+          UPDATE products 
+          SET stock = GREATEST(0, stock - ${item.quantity})
+          WHERE id = ${item.id};
+        `;
       }
+      console.log("Stock actualizado correctamente en la base de datos");
     } catch (err) {
-      console.error("Error al actualizar stock:", err);
-      // Continuamos con el envío del mail aunque falle el stock
+      console.error("Error al actualizar stock en DB:", err);
     }
 
-    // We check if environment variables are set. If not, we still return success 
-    // but log it so the developer knows it needs configuration.
+    // 2. Enviar Correo
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.warn("Nodemailer: Las variables de entorno EMAIL_USER o EMAIL_PASS no están configuradas. Simulando envío de correo.");
-      console.log("Datos del pedido:", data);
+      console.warn("Nodemailer: Variables de entorno no configuradas.");
       return NextResponse.json({ success: true, simulated: true });
     }
 
     const transporter = nodemailer.createTransport({
-      service: 'gmail', // You can use other services
+      service: 'gmail',
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
@@ -74,38 +55,31 @@ export async function POST(request) {
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
           <h2 style="color: #00A896;">¡Nuevo Pedido Recibido!</h2>
-          
           <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <h3 style="margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Datos del Cliente</h3>
+            <h3>Datos del Cliente</h3>
             <p><strong>Nombre:</strong> ${user.name}</p>
             <p><strong>Email:</strong> ${user.email}</p>
             <p><strong>Teléfono/WhatsApp:</strong> ${user.phone}</p>
-            <p><strong>Notas:</strong> ${user.notes || 'Sin notas adicionales'}</p>
+            <p><strong>Notas:</strong> ${user.notes || 'Sin notas'}</p>
           </div>
-
-          <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 10px;">Detalle del Pedido</h3>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+          <table style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr style="background-color: #00A896; color: white;">
                 <th style="padding: 10px; text-align: left;">Producto</th>
-                <th style="padding: 10px; text-align: center;">Cant.</th>
+                <th style="padding: 10px;">Cant.</th>
                 <th style="padding: 10px; text-align: right;">Efectivo</th>
                 <th style="padding: 10px; text-align: right;">Transf.</th>
               </tr>
             </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
+            <tbody>${itemsHtml}</tbody>
             <tfoot>
               <tr>
                 <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold;">Totales:</td>
-                <td style="padding: 10px; text-align: right; font-weight: bold;">$${totalEfectivo}</td>
-                <td style="padding: 10px; text-align: right; font-weight: bold; color: #00A896;">$${totalTransf}</td>
+                <td style="padding: 10px; text-align: right;">$${totalEfectivo}</td>
+                <td style="padding: 10px; text-align: right; color: #00A896;">$${totalTransf}</td>
               </tr>
             </tfoot>
           </table>
-          
-          <p style="font-size: 12px; color: #888; text-align: center;">Este correo fue generado automáticamente desde tu Catálogo Kareh.</p>
         </div>
       `,
     };
@@ -115,6 +89,6 @@ export async function POST(request) {
     
   } catch (error) {
     console.error("Error sending email:", error);
-    return NextResponse.json({ error: 'Failed to send email' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to process order' }, { status: 500 });
   }
 }

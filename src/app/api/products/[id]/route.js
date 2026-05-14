@@ -1,59 +1,52 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-
-export const dynamic = 'force-dynamic';
-
-
-const dataFilePath = path.join(process.cwd(), 'data', 'products.json');
-
-async function getProducts() {
-  try {
-    const fileContents = await fs.readFile(dataFilePath, 'utf8');
-    return JSON.parse(fileContents);
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      await fs.writeFile(dataFilePath, '[]');
-      return [];
-    }
-    throw error;
-  }
-}
+import { sql } from '@vercel/postgres';
 
 export async function PUT(request, { params }) {
   try {
     const { id } = await params;
-    const updatedData = await request.json();
-    const products = await getProducts();
-    
-    const index = products.findIndex(p => p.id === id);
-    if (index === -1) {
+    const updatedProduct = await request.json();
+
+    const { rows } = await sql`
+      UPDATE products 
+      SET 
+        name = ${updatedProduct.name},
+        description = ${updatedProduct.description},
+        stock = ${updatedProduct.stock},
+        cost_price = ${updatedProduct.costPrice},
+        cash_price = ${updatedProduct.cashPrice},
+        transfer_price = ${updatedProduct.transferPrice},
+        image = ${updatedProduct.image}
+      WHERE id = ${id}
+      RETURNING *;
+    `;
+
+    if (rows.length === 0) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
-    
-    products[index] = { ...products[index], ...updatedData };
-    await fs.writeFile(dataFilePath, JSON.stringify(products, null, 2));
-    
-    return NextResponse.json(products[index]);
+
+    const product = {
+      ...rows[0],
+      costPrice: Number(rows[0].cost_price),
+      cashPrice: Number(rows[0].cash_price),
+      transferPrice: Number(rows[0].transfer_price)
+    };
+
+    return NextResponse.json(product);
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
+    console.error(error);
+    return NextResponse.json({ error: 'Failed to update product in database' }, { status: 500 });
   }
 }
 
 export async function DELETE(request, { params }) {
   try {
     const { id } = await params;
-    const products = await getProducts();
     
-    const filteredProducts = products.filter(p => p.id !== id);
-    if (products.length === filteredProducts.length) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
-    }
+    await sql`DELETE FROM products WHERE id = ${id}`;
     
-    await fs.writeFile(dataFilePath, JSON.stringify(filteredProducts, null, 2));
-    
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ message: 'Product deleted' });
   } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: 'Failed to delete product' }, { status: 500 });
   }
 }

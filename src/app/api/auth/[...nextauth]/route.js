@@ -3,8 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
 import AzureADProvider from "next-auth/providers/azure-ad";
-import fs from "fs/promises";
-import path from "path";
+import { sql } from "@vercel/postgres";
 import bcrypt from "bcryptjs";
 
 export const authOptions = {
@@ -29,21 +28,19 @@ export const authOptions = {
         password: { label: "Contraseña", type: "password" }
       },
       async authorize(credentials) {
-        const usersFilePath = path.join(process.cwd(), "data", "users.json");
         try {
-          const fileContents = await fs.readFile(usersFilePath, "utf8");
-          const users = JSON.parse(fileContents);
-          
-          const user = users.find(u => u.email === credentials.email);
+          const { rows } = await sql`SELECT * FROM users WHERE email = ${credentials.email}`;
+          const user = rows[0];
+
           if (user) {
             const isValid = await bcrypt.compare(credentials.password, user.password);
             if (isValid) {
-              return { id: user.id, name: user.name, email: user.email, role: user.role };
+              return { id: user.id.toString(), name: user.name, email: user.email, role: user.role };
             }
           }
           return null;
         } catch (error) {
-          console.error("Error reading users", error);
+          console.error("Error querying users from database", error);
           return null;
         }
       }
