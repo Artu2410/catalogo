@@ -11,6 +11,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckout, setIsCheckout] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart } = useCartStore();
 
@@ -65,10 +66,10 @@ export default function Home() {
       });
       
       if (response.ok) {
-        alert("¡Pedido enviado con éxito! Te contactaremos a la brevedad.");
         clearCart();
         setIsCartOpen(false);
         setIsCheckout(false);
+        setShowSuccessModal(true);
       } else {
         alert("Hubo un error al enviar el pedido. Por favor intenta de nuevo.");
       }
@@ -344,6 +345,21 @@ export default function Home() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="modal-overlay">
+          <div className="modal-content success-modal animate-fade-in">
+            <div className="success-icon">
+              <Check size={48} />
+            </div>
+            <h2>¡Pedido enviado con éxito!</h2>
+            <p>Gracias por confiar en KAREH. Nos pondremos en contacto contigo a la brevedad para coordinar el pago y la entrega.</p>
+            <button onClick={() => setShowSuccessModal(false)} className="btn btn-primary" style={{ marginTop: '1.5rem', width: 'auto', padding: '0.75rem 2rem' }}>
+              Entendido
+            </button>
           </div>
         </div>
       )}
