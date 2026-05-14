@@ -7,7 +7,7 @@
     "costPrice": 14500,
     "cashPrice": 25000,
     "transferPrice": 26000,
-    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/banhs28044-c34f9c32e3406155e217765359280831-1024-1024.webp"
+    "image": "/images/SET BANDAS TELA (X3).webp"
   },
   {
     "id": "2",
@@ -17,7 +17,7 @@
     "costPrice": 6100,
     "cashPrice": 13000,
     "transferPrice": 14000,
-    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/banhs17321-b7d7b5f8cd8764896c17510467896434-1024-1024.webp"
+    "image": "/images/BANDAS (X5).webp"
   },
   {
     "id": "3",
@@ -27,7 +27,7 @@
     "costPrice": 4100,
     "cashPrice": 8000,
     "transferPrice": 9000,
-    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/tirhs17690-c4acebaccb089b1d5c17576145888207-1024-1024.webp"
+    "image": "/images/TIRABANDAS.webp"
   },
   {
     "id": "4",
@@ -37,7 +37,7 @@
     "costPrice": 14500,
     "cashPrice": 22500,
     "transferPrice": 23500,
-    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/grihs12122-ca0f8d245039b186b817510456188787-1024-1024.webp"
+    "image": "/images/HAND GRIP.webp"
   },
   {
     "id": "5",
@@ -47,7 +47,7 @@
     "costPrice": 6100,
     "cashPrice": 11500,
     "transferPrice": 12000,
-    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/pelhs11989-992aee325955abcb2317719463235720-1024-1024.webp"
+    "image": "/images/MINI BOZU.webp"
   },
   {
     "id": "6",
@@ -57,7 +57,7 @@
     "costPrice": 2500,
     "cashPrice": 3500,
     "transferPrice": 4000,
-    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/bolhs06017-6dab41c15bba37d0af17510444968076-1024-1024.webp"
+    "image": "/images/PELOTAS MASAJE.webp"
   },
   {
     "name": "BANDA CIRCULA TELA VERDE 60LB 74*8cm",
@@ -66,7 +66,7 @@
     "costPrice": 4500,
     "cashPrice": 9500,
     "transferPrice": 10000,
-    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/banhs23124-478252ea7037b9ab0a17719590899534-1024-1024.webp",
+    "image": "/images/BANDA CIRCULA TELA VERDE 60LB 74x8cm.webp",
     "id": "1778631727112"
   },
   {
@@ -76,7 +76,7 @@
     "costPrice": 5000,
     "cashPrice": 10500,
     "transferPrice": 11000,
-    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/banhs23131-94a2a25e83f289b40417719590550868-1024-1024.webp",
+    "image": "/images/BANDA CIRCULA TELA ROSA 90LB 74x8cm.webp",
     "id": "1778631860441"
   },
   {
@@ -86,7 +86,7 @@
     "costPrice": 6000,
     "cashPrice": 11500,
     "transferPrice": 12000,
-    "image": "https://dcdn-us.mitiendanube.com/stores/004/819/160/products/banhs23148-c5a1c7467d82d7fe4917719589845554-1024-1024.webp",
+    "image": "/images/BANDA CIRCULA TELA VIOLETA 120LB 74x8cm.webp",
     "id": "1778631942272"
   }
 ]
