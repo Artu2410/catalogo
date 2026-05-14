@@ -5,10 +5,15 @@ import path from 'path';
 
 const productsFilePath = path.join(process.cwd(), 'data', 'products.json');
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request) {
   try {
     const data = await request.json();
     const { user, cart, totalEfectivo, totalTransf } = data;
+
+    console.log("Procesando pedido para:", user.email);
+    console.log("Items en carrito:", cart.map(i => `${i.name} (x${i.quantity})`).join(", "));
 
     // Actualizar stock en productos.json
     try {
@@ -28,6 +33,9 @@ export async function POST(request) {
       
       if (stockUpdated) {
         await fs.writeFile(productsFilePath, JSON.stringify(products, null, 2));
+        console.log("Stock actualizado correctamente en products.json");
+      } else {
+        console.warn("No se encontró ningún producto coincidente para actualizar stock");
       }
     } catch (err) {
       console.error("Error al actualizar stock:", err);
