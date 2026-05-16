@@ -1,117 +1,140 @@
 import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
 import { sql } from '@vercel/postgres';
 
 export const dynamic = 'force-dynamic';
+
+const FORMSPREE_ENDPOINT =
+  process.env.FORMSPREE_VENTAS_ENDPOINT || 'https://formspree.io/f/xeenyryl';
+
+function formatPrice(price) {
+  return new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+  }).format(Number(price || 0));
+}
+
+function buildOrderSummary(cart = []) {
+  return cart
+    .map(
+      (item) =>
+        `${item.quantity}x ${item.name} | Efectivo: ${formatPrice(
+          item.cashPrice
+        )} | Transferencia: ${formatPrice(item.transferPrice)}`
+    )
+    .join('\n');
+}
+
+function buildOrderMessage({ user, cart, totalEfectivo, totalTransf }) {
+  return [
+    'Nuevo pedido desde catalogokareh',
+    '',
+    'Cliente',
+    `Nombre: ${user.name}`,
+    `Email: ${user.email}`,
+    `Telefono / WhatsApp: ${user.phone}`,
+    `Notas: ${user.notes?.trim() || 'Sin notas'}`,
+    '',
+    'Productos',
+    buildOrderSummary(cart),
+    '',
+    `Total Efectivo: ${formatPrice(totalEfectivo)}`,
+    `Total Transferencia: ${formatPrice(totalTransf)}`,
+  ].join('\n');
+}
+
+async function sendOrderNotification(order) {
+  const params = new URLSearchParams({
+    name: order.user.name,
+    email: order.user.email,
+    phone: order.user.phone,
+    notes: order.user.notes?.trim() || 'Sin notas',
+    items: buildOrderSummary(order.cart),
+    total_efectivo: formatPrice(order.totalEfectivo),
+    total_transferencia: formatPrice(order.totalTransf),
+    project: 'catalogokareh',
+    message: buildOrderMessage(order),
+    _subject: `Nuevo pedido de ${order.user.name} - Catalogo Kareh`,
+  });
+
+  const response = await fetch(FORMSPREE_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params.toString(),
+  });
+
+  if (!response.ok) {
+    const responseText = await response.text();
+    throw new Error(
+      `Formspree request failed with ${response.status}: ${responseText}`
+    );
+  }
+}
 
 export async function POST(request) {
   try {
     const data = await request.json();
     const { user, cart, totalEfectivo, totalTransf } = data;
+    const hasValidUser =
+      user?.name?.trim() && user?.email?.trim() && user?.phone?.trim();
+
+    if (!hasValidUser || !Array.isArray(cart) || cart.length === 0) {
+      return NextResponse.json(
+        { error: 'Datos de compra invalidos' },
+        { status: 400 }
+      );
+    }
 
     console.log("Procesando pedido para:", user.email);
 
-    // 1. Actualizar stock y Registrar Venta en Postgres
-    try {
-      // Registrar la venta
+    await sql`
+      INSERT INTO sales (
+        customer_name, 
+        customer_email, 
+        customer_phone, 
+        items, 
+        total_amount, 
+        payment_method, 
+        source, 
+        notes
+      ) VALUES (
+        ${user.name}, 
+        ${user.email}, 
+        ${user.phone}, 
+        ${JSON.stringify(cart)}, 
+        ${totalTransf},
+        'pendiente', 
+        'web', 
+        ${user.notes || ''}
+      );
+    `;
+
+    for (const item of cart) {
       await sql`
-        INSERT INTO sales (
-          customer_name, 
-          customer_email, 
-          customer_phone, 
-          items, 
-          total_amount, 
-          payment_method, 
-          source, 
-          notes
-        ) VALUES (
-          ${user.name}, 
-          ${user.email}, 
-          ${user.phone}, 
-          ${JSON.stringify(cart)}, 
-          ${totalTransf}, -- Usamos totalTransf como referencia de monto total en la DB
-          'pendiente', 
-          'web', 
-          ${user.notes || ''}
-        );
+        UPDATE products 
+        SET stock = GREATEST(0, stock - ${item.quantity})
+        WHERE id = ${item.id};
       `;
-
-      for (const item of cart) {
-        await sql`
-          UPDATE products 
-          SET stock = GREATEST(0, stock - ${item.quantity})
-          WHERE id = ${item.id};
-        `;
-      }
-      console.log("Venta registrada y stock actualizado correctamente");
-    } catch (err) {
-      console.error("Error al procesar venta en DB:", err);
     }
 
-    // 2. Enviar Correo
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.warn("Nodemailer: Variables de entorno no configuradas.");
-      return NextResponse.json({ success: true, simulated: true });
+    console.log('Venta registrada y stock actualizado correctamente');
+
+    let notificationSent = false;
+
+    try {
+      await sendOrderNotification({ user, cart, totalEfectivo, totalTransf });
+      notificationSent = true;
+    } catch (notificationError) {
+      console.error('Error sending Formspree notification:', notificationError);
     }
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    const itemsHtml = cart.map(item => `
-      <tr>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd;">${item.name}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${item.quantity}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">$${item.cashPrice}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">$${item.transferPrice}</td>
-      </tr>
-    `).join('');
-
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: 'centrokareh@gmail.com',
-      subject: `Nuevo Pedido de ${user.name} - Catálogo Kareh`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-          <h2 style="color: #00A896;">¡Nuevo Pedido Recibido!</h2>
-          <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-            <h3>Datos del Cliente</h3>
-            <p><strong>Nombre:</strong> ${user.name}</p>
-            <p><strong>Email:</strong> ${user.email}</p>
-            <p><strong>Teléfono/WhatsApp:</strong> ${user.phone}</p>
-            <p><strong>Notas:</strong> ${user.notes || 'Sin notas'}</p>
-          </div>
-          <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr style="background-color: #00A896; color: white;">
-                <th style="padding: 10px; text-align: left;">Producto</th>
-                <th style="padding: 10px;">Cant.</th>
-                <th style="padding: 10px; text-align: right;">Efectivo</th>
-                <th style="padding: 10px; text-align: right;">Transf.</th>
-              </tr>
-            </thead>
-            <tbody>${itemsHtml}</tbody>
-            <tfoot>
-              <tr>
-                <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold;">Totales:</td>
-                <td style="padding: 10px; text-align: right;">$${totalEfectivo}</td>
-                <td style="padding: 10px; text-align: right; color: #00A896;">$${totalTransf}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      `,
-    };
-
-    await transporter.sendMail(mailOptions);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, notificationSent });
     
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error("Error processing order:", error);
     return NextResponse.json({ error: 'Failed to process order' }, { status: 500 });
   }
 }

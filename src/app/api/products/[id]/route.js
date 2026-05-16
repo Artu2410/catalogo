@@ -5,6 +5,7 @@ export async function PUT(request, { params }) {
   try {
     const { id } = await params;
     const updatedProduct = await request.json();
+    const image = typeof updatedProduct.image === 'string' ? updatedProduct.image.trim() : '';
 
     const { rows } = await sql`
       UPDATE products 
@@ -15,7 +16,7 @@ export async function PUT(request, { params }) {
         cost_price = ${updatedProduct.costPrice},
         cash_price = ${updatedProduct.cashPrice},
         transfer_price = ${updatedProduct.transferPrice},
-        image = ${updatedProduct.image}
+        image = ${image}
       WHERE id = ${id}
       RETURNING *;
     `;

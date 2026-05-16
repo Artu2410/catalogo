@@ -43,7 +43,7 @@ export default function AdminPage() {
     }
   }, [status, router]);
 
-  const fetchSales = async () => {
+  async function fetchSales() {
     try {
       const res = await fetch('/api/sales');
       const data = await res.json();
@@ -51,10 +51,10 @@ export default function AdminPage() {
     } catch (err) {
       console.error("Failed to fetch sales", err);
     }
-  };
+  }
 
 
-  const fetchProducts = async () => {
+  async function fetchProducts() {
     try {
       const res = await fetch('/api/products');
       const data = await res.json();
@@ -64,7 +64,7 @@ export default function AdminPage() {
       console.error("Failed to fetch products", err);
       setLoading(false);
     }
-  };
+  }
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -276,17 +276,17 @@ export default function AdminPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">URL de la Imagen (Google Drive o Directo)</label>
+                <label className="form-label">Imagen desde Google Drive</label>
                 <input 
-                  type="url" 
+                  type="text" 
                   className="form-control" 
                   name="image" 
                   value={formData.image || ''} 
                   onChange={handleInputChange} 
-                  placeholder="https://drive.google.com/uc?export=view&id=..."
+                  placeholder="HAND GRIP.png, ID del archivo o URL de Drive"
                 />
                 <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-                  Tip: Para Google Drive usa <code>https://drive.google.com/uc?export=view&id=ID_DEL_ARCHIVO</code>
+                  La app busca en tu carpeta pública de Drive. Puedes dejar el nombre del archivo, pegar el ID o una URL de Google Drive.
                 </p>
               </div>
 

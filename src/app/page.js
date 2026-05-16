@@ -8,11 +8,13 @@ import { useCartStore } from './store/cartStore';
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('relevant');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckout, setIsCheckout] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [checkoutWarning, setCheckoutWarning] = useState('');
   
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart } = useCartStore();
 
@@ -62,6 +64,11 @@ export default function Home() {
 
   const handleCheckout = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    setCheckoutWarning('');
+
     try {
       const response = await fetch('/api/checkout', {
         method: 'POST',
@@ -73,18 +80,24 @@ export default function Home() {
           totalTransf: cartTotalTransf
         })
       });
+      const result = await response.json().catch(() => ({}));
       
       if (response.ok) {
+        if (result.notificationSent === false) {
+          setCheckoutWarning('El pedido se registro, pero no pudimos confirmar el envio del correo a centrokareh@gmail.com.');
+        }
         clearCart();
         setIsCartOpen(false);
         setIsCheckout(false);
         setShowSuccessModal(true);
       } else {
-        alert("Hubo un error al enviar el pedido. Por favor intenta de nuevo.");
+        alert(result.error || "Hubo un error al enviar el pedido. Por favor intenta de nuevo.");
       }
     } catch (error) {
       console.error(error);
       alert("Hubo un error al enviar el pedido.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -309,23 +322,23 @@ export default function Home() {
                   ))}
                 </div>
               ) : (
-                <form id="checkout-form" onSubmit={handleCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <form id="checkout-form" method="POST" onSubmit={handleCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <h3 style={{ marginBottom: '1rem' }}>Datos de Contacto</h3>
                   <div className="form-group">
                     <label className="form-label">Nombre Completo</label>
-                    <input type="text" className="form-control" required value={checkoutData.name} onChange={e => setCheckoutData({...checkoutData, name: e.target.value})} />
+                    <input type="text" name="name" className="form-control" required value={checkoutData.name} onChange={e => setCheckoutData({...checkoutData, name: e.target.value})} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Correo Electrónico</label>
-                    <input type="email" className="form-control" required value={checkoutData.email} onChange={e => setCheckoutData({...checkoutData, email: e.target.value})} />
+                    <input type="email" name="email" className="form-control" required value={checkoutData.email} onChange={e => setCheckoutData({...checkoutData, email: e.target.value})} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Teléfono / WhatsApp</label>
-                    <input type="tel" className="form-control" required value={checkoutData.phone} onChange={e => setCheckoutData({...checkoutData, phone: e.target.value})} />
+                    <input type="tel" name="phone" className="form-control" required value={checkoutData.phone} onChange={e => setCheckoutData({...checkoutData, phone: e.target.value})} />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Notas Adicionales (opcional)</label>
-                    <textarea className="form-control" rows="3" value={checkoutData.notes} onChange={e => setCheckoutData({...checkoutData, notes: e.target.value})}></textarea>
+                    <textarea name="notes" className="form-control" rows="3" value={checkoutData.notes} onChange={e => setCheckoutData({...checkoutData, notes: e.target.value})}></textarea>
                   </div>
                 </form>
               )}
@@ -348,11 +361,11 @@ export default function Home() {
                   </button>
                 ) : (
                   <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button onClick={() => setIsCheckout(false)} className="btn btn-secondary" style={{ flex: 1 }}>
+                    <button onClick={() => setIsCheckout(false)} className="btn btn-secondary" style={{ flex: 1 }} disabled={isSubmitting}>
                       Volver
                     </button>
-                    <button form="checkout-form" type="submit" className="btn btn-primary" style={{ flex: 2 }}>
-                      Confirmar Compra
+                    <button form="checkout-form" type="submit" className="btn btn-primary" style={{ flex: 2 }} disabled={isSubmitting}>
+                      {isSubmitting ? 'Enviando...' : 'Confirmar Compra'}
                     </button>
                   </div>
                 )}
@@ -370,7 +383,10 @@ export default function Home() {
             </div>
             <h2>¡Pedido enviado con éxito!</h2>
             <p>Gracias por confiar en KAREH. Nos pondremos en contacto contigo a la brevedad para coordinar el pago y la entrega.</p>
-            <button onClick={() => setShowSuccessModal(false)} className="btn btn-primary" style={{ marginTop: '1.5rem', width: 'auto', padding: '0.75rem 2rem' }}>
+            {checkoutWarning && (
+              <p style={{ marginTop: '1rem', color: '#f5c46b' }}>{checkoutWarning}</p>
+            )}
+            <button onClick={() => { setShowSuccessModal(false); setCheckoutWarning(''); }} className="btn btn-primary" style={{ marginTop: '1.5rem', width: 'auto', padding: '0.75rem 2rem' }}>
               Entendido
             </button>
           </div>

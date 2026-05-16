@@ -7,7 +7,7 @@
     "costPrice": 14500,
     "cashPrice": 25000,
     "transferPrice": 26000,
-    "image": "/images/SET BANDAS TELA (X3).webp"
+    "image": "SET BANDAS TELA (X3).png"
   },
   {
     "id": "2",
@@ -17,7 +17,7 @@
     "costPrice": 6100,
     "cashPrice": 13000,
     "transferPrice": 14000,
-    "image": "/images/BANDAS (X5).webp"
+    "image": "BANDAS (X5).png"
   },
   {
     "id": "3",
@@ -27,7 +27,7 @@
     "costPrice": 4100,
     "cashPrice": 8000,
     "transferPrice": 9000,
-    "image": "/images/TIRABANDAS.webp"
+    "image": "TIRABANDAS AZUL.png"
   },
   {
     "id": "4",
@@ -37,7 +37,7 @@
     "costPrice": 14500,
     "cashPrice": 22500,
     "transferPrice": 23500,
-    "image": "/images/HAND GRIP.webp"
+    "image": "HAND GRIP.png"
   },
   {
     "id": "5",
@@ -47,7 +47,7 @@
     "costPrice": 6100,
     "cashPrice": 11500,
     "transferPrice": 12000,
-    "image": "/images/MINI BOZU.webp"
+    "image": "MINI BOZU.png"
   },
   {
     "id": "6",
@@ -57,7 +57,7 @@
     "costPrice": 2500,
     "cashPrice": 3500,
     "transferPrice": 4000,
-    "image": "/images/PELOTAS MASAJE.webp"
+    "image": "PELOTAS MASAJE.png"
   },
   {
     "name": "BANDA CIRCULA TELA VERDE 60LB 74*8cm",
@@ -66,7 +66,7 @@
     "costPrice": 4500,
     "cashPrice": 9500,
     "transferPrice": 10000,
-    "image": "/images/BANDA CIRCULA TELA VERDE 60LB 74x8cm.webp",
+    "image": "BANDA CIRCULA TELA VERDE 60LB 74*8cm.png",
     "id": "1778631727112"
   },
   {
@@ -76,7 +76,7 @@
     "costPrice": 5000,
     "cashPrice": 10500,
     "transferPrice": 11000,
-    "image": "/images/BANDA CIRCULA TELA ROSA 90LB 74x8cm.webp",
+    "image": "BANDA CIRCULA TELA ROSA 90LB 74*8cm.png",
     "id": "1778631860441"
   },
   {
@@ -86,7 +86,7 @@
     "costPrice": 6000,
     "cashPrice": 11500,
     "transferPrice": 12000,
-    "image": "/images/BANDA CIRCULA TELA VIOLETA 120LB 74x8cm.webp",
+    "image": "BANDA CIRCULA TELA VIOLETA 120LB 74*8cm.png",
     "id": "1778631942272"
   }
 ]

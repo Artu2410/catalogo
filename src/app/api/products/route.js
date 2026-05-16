@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import { hydrateProductsWithDriveImages } from '@/lib/googleDrive';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +15,10 @@ export async function GET() {
       cashPrice: Number(p.cash_price),
       transferPrice: Number(p.transfer_price)
     }));
+
+    const hydratedProducts = await hydrateProductsWithDriveImages(products);
     
-    return NextResponse.json(products);
+    return NextResponse.json(hydratedProducts);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to fetch products from database' }, { status: 500 });
@@ -25,6 +28,7 @@ export async function GET() {
 export async function POST(request) {
   try {
     const newProduct = await request.json();
+    const image = typeof newProduct.image === 'string' ? newProduct.image.trim() : '';
     
     const { rows } = await sql`
       INSERT INTO products (name, description, stock, cost_price, cash_price, transfer_price, image)
@@ -35,7 +39,7 @@ export async function POST(request) {
         ${newProduct.costPrice}, 
         ${newProduct.cashPrice}, 
         ${newProduct.transferPrice}, 
-        ${newProduct.image}
+        ${image}
       )
       RETURNING *;
     `;
