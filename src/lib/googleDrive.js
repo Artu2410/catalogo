@@ -78,6 +78,10 @@ function decodeDriveString(value = '') {
 }
 
 function buildDriveImageUrl(fileId) {
+  return `/api/drive-image?id=${encodeURIComponent(fileId)}`;
+}
+
+export function buildDriveSourceUrl(fileId) {
   return `https://drive.google.com/uc?export=view&id=${fileId}`;
 }
 
