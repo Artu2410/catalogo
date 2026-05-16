@@ -29,6 +29,22 @@ export async function initDb() {
       );
     `;
 
+    // Create sales table
+    await sql`
+      CREATE TABLE IF NOT EXISTS sales (
+        id SERIAL PRIMARY KEY,
+        customer_name VARCHAR(255) NOT NULL,
+        customer_email VARCHAR(255),
+        customer_phone VARCHAR(255),
+        items JSONB NOT NULL,
+        total_amount DECIMAL(10, 2) NOT NULL,
+        payment_method VARCHAR(50) NOT NULL,
+        source VARCHAR(50) NOT NULL, -- 'web' or 'local'
+        notes TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
     console.log("Database initialized successfully");
   } catch (error) {
     console.error("Failed to initialize database:", error);

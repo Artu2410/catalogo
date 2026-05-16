@@ -11,8 +11,31 @@ export async function POST(request) {
 
     console.log("Procesando pedido para:", user.email);
 
-    // 1. Actualizar stock en Postgres
+    // 1. Actualizar stock y Registrar Venta en Postgres
     try {
+      // Registrar la venta
+      await sql`
+        INSERT INTO sales (
+          customer_name, 
+          customer_email, 
+          customer_phone, 
+          items, 
+          total_amount, 
+          payment_method, 
+          source, 
+          notes
+        ) VALUES (
+          ${user.name}, 
+          ${user.email}, 
+          ${user.phone}, 
+          ${JSON.stringify(cart)}, 
+          ${totalTransf}, -- Usamos totalTransf como referencia de monto total en la DB
+          'pendiente', 
+          'web', 
+          ${user.notes || ''}
+        );
+      `;
+
       for (const item of cart) {
         await sql`
           UPDATE products 
@@ -20,9 +43,9 @@ export async function POST(request) {
           WHERE id = ${item.id};
         `;
       }
-      console.log("Stock actualizado correctamente en la base de datos");
+      console.log("Venta registrada y stock actualizado correctamente");
     } catch (err) {
-      console.error("Error al actualizar stock en DB:", err);
+      console.error("Error al procesar venta en DB:", err);
     }
 
     // 2. Enviar Correo
