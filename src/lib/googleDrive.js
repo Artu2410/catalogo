@@ -5,10 +5,25 @@ const DEFAULT_DRIVE_FOLDER_URL =
 const DRIVE_FOLDER_CACHE_TTL_MS = 10 * 60 * 1000;
 const DRIVE_FILE_PATTERN =
   /\\x5b\\x22([A-Za-z0-9_-]{20,})\\x22,\\x5b\\x22([A-Za-z0-9_-]{20,})\\x22\\x5d,\\x22([^\\]+?)\\x22,\\x22image\\\/([^\\]+?)\\x22/g;
+const STATIC_DRIVE_FILES = [
+  { id: '1CK4ub-WBmYa4mGUSj72r0TGDY6swgyHg', name: 'SET BANDAS TELA (X3).png', mimeType: 'image/png' },
+  { id: '1SKtjaf0zOzXBa_gQecfuXvNQFtmVXcBj', name: 'BANDAS (X5).png', mimeType: 'image/png' },
+  { id: '1fAvuXT9tPhzSeFZSA-8gHSIJ0dsrHz92', name: 'TIRABANDAS AZUL.png', mimeType: 'image/png' },
+  { id: '1osQ0kyC7kz_XO4mdEf4teKa9m-sqttAx', name: 'TIRABANDAS VIOLETA.png', mimeType: 'image/png' },
+  { id: '15_dcqfrUK90SFaCRKD7YNkjgCfwpYFKe', name: 'HAND GRIP.png', mimeType: 'image/png' },
+  { id: '17WdJslI-fqJ80qCpmwaKdrM2tUO2u83U', name: 'MINI BOZU.png', mimeType: 'image/png' },
+  { id: '1s6oE-Wl7zzGKFKj1mCAWm2Jgm5t9vECc', name: 'PELOTAS MASAJE.png', mimeType: 'image/png' },
+  { id: '1NoSE3Tnb5MW4vUJjqu0py8nf4__uYZG-', name: 'BANDA CIRCULA TELA VERDE 60LB 74*8cm.png', mimeType: 'image/png' },
+  { id: '1073t5_zHQ9znTT-0h2pfapDP0RiJVuIU', name: 'BANDA CIRCULA TELA ROSA 90LB 74*8cm.png', mimeType: 'image/png' },
+  { id: '1F7Yde605eiKtKYsO8lCeGnvnzO35Jv9f', name: 'BANDA CIRCULA TELA VIOLETA 120LB 74*8cm.png', mimeType: 'image/png' },
+].map((file) => ({
+  ...file,
+  key: normalizeImageKey(file.name),
+}));
 
 let driveFolderCache = {
   expiresAt: 0,
-  files: [],
+  files: STATIC_DRIVE_FILES,
 };
 
 function extractDriveFolderId(input = '') {
@@ -72,7 +87,7 @@ function isRemoteUrl(value = '') {
 
 async function fetchDriveFolderFiles() {
   const folderId = extractDriveFolderId(DEFAULT_DRIVE_FOLDER_URL);
-  if (!folderId) return [];
+  if (!folderId) return STATIC_DRIVE_FILES;
 
   if (driveFolderCache.expiresAt > Date.now()) {
     return driveFolderCache.files;
@@ -91,8 +106,12 @@ async function fetchDriveFolderFiles() {
     }
 
     const html = await response.text();
-    const files = [];
+    const files = [...STATIC_DRIVE_FILES];
     const seen = new Set();
+
+    for (const file of STATIC_DRIVE_FILES) {
+      seen.add(`${file.key}:${file.id}`);
+    }
 
     for (const match of html.matchAll(DRIVE_FILE_PATTERN)) {
       const fileId = match[1];
@@ -127,9 +146,9 @@ async function fetchDriveFolderFiles() {
     console.error('Failed to load Google Drive folder images:', error);
     driveFolderCache = {
       expiresAt: Date.now() + 60 * 1000,
-      files: [],
+      files: STATIC_DRIVE_FILES,
     };
-    return [];
+    return STATIC_DRIVE_FILES;
   }
 }
 
