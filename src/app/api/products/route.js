@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import { requireAdmin } from '@/lib/auth';
+import { initDb } from '@/lib/db';
 import { hydrateProductsWithDriveImages } from '@/lib/googleDrive';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    await initDb();
+
     const { rows } = await sql`SELECT * FROM products ORDER BY id ASC`;
     
     // Map database fields to frontend camelCase
@@ -27,6 +31,14 @@ export async function GET() {
 
 export async function POST(request) {
   try {
+    await initDb();
+
+    const authError = await requireAdmin();
+
+    if (authError) {
+      return authError;
+    }
+
     const newProduct = await request.json();
     const image = typeof newProduct.image === 'string' ? newProduct.image.trim() : '';
     

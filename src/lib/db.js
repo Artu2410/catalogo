@@ -1,6 +1,8 @@
 import { sql } from '@vercel/postgres';
 
-export async function initDb() {
+let dbInitPromise;
+
+async function applySchema() {
   try {
     // Create users table
     await sql`
@@ -12,6 +14,13 @@ export async function initDb() {
         role VARCHAR(50) DEFAULT 'user',
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+    `;
+
+    await sql`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS email_verified_at TIMESTAMP WITH TIME ZONE,
+      ADD COLUMN IF NOT EXISTS is_pending_verification BOOLEAN DEFAULT FALSE,
+      ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(50) DEFAULT 'credentials';
     `;
 
     // Create products table
@@ -45,8 +54,38 @@ export async function initDb() {
       );
     `;
 
+    // Create auth tokens table
+    await sql`
+      CREATE TABLE IF NOT EXISTS auth_tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        type VARCHAR(50) NOT NULL,
+        token_hash VARCHAR(255) UNIQUE NOT NULL,
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        consumed_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+    `;
+
+    await sql`
+      CREATE INDEX IF NOT EXISTS auth_tokens_user_type_idx
+      ON auth_tokens (user_id, type, consumed_at);
+    `;
+
     console.log("Database initialized successfully");
   } catch (error) {
     console.error("Failed to initialize database:", error);
+    throw error;
   }
+}
+
+export async function initDb() {
+  if (!dbInitPromise) {
+    dbInitPromise = applySchema().catch((error) => {
+      dbInitPromise = undefined;
+      throw error;
+    });
+  }
+
+  return dbInitPromise;
 }

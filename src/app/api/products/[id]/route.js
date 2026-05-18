@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import { requireAdmin } from '@/lib/auth';
+import { initDb } from '@/lib/db';
 
 export async function PUT(request, { params }) {
   try {
+    await initDb();
+
+    const authError = await requireAdmin();
+
+    if (authError) {
+      return authError;
+    }
+
     const { id } = await params;
     const updatedProduct = await request.json();
     const image = typeof updatedProduct.image === 'string' ? updatedProduct.image.trim() : '';
@@ -41,6 +51,14 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
+    await initDb();
+
+    const authError = await requireAdmin();
+
+    if (authError) {
+      return authError;
+    }
+
     const { id } = await params;
     
     await sql`DELETE FROM products WHERE id = ${id}`;

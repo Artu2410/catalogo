@@ -26,6 +26,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('products');
   const [sales, setSales] = useState([]);
   const [showManualSaleModal, setShowManualSaleModal] = useState(false);
+  const [manualSaleError, setManualSaleError] = useState('');
   const [manualSaleForm, setManualSaleForm] = useState({
     customer_name: '',
     customer_phone: '',
@@ -37,11 +38,19 @@ export default function AdminPage() {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
-    } else if (status === 'authenticated') {
+      return;
+    }
+
+    if (status === 'authenticated') {
+      if (session?.user?.role !== 'admin') {
+        router.push('/');
+        return;
+      }
+
       fetchProducts();
       fetchSales();
     }
-  }, [status, router]);
+  }, [router, session?.user?.role, status]);
 
   async function fetchSales() {
     try {
@@ -152,7 +161,7 @@ export default function AdminPage() {
     }
   };
 
-  if (status === 'loading') {
+  if (status === 'loading' || (status === 'authenticated' && session?.user?.role !== 'admin')) {
     return <div className="loader-container"><div className="loader"></div></div>;
   }
 
@@ -471,29 +480,48 @@ export default function AdminPage() {
             <form onSubmit={async (e) => {
               e.preventDefault();
               setLoading(true);
+              setManualSaleError('');
               try {
-                const total = manualSaleForm.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
                 const res = await fetch('/api/sales', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     ...manualSaleForm,
-                    total_amount: total,
                     source: 'local'
                   })
                 });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                  throw new Error(data.error || 'No pudimos registrar la venta.');
+                }
                 if (res.ok) {
                   setShowManualSaleModal(false);
+                  setManualSaleError('');
                   setManualSaleForm({ customer_name: '', customer_phone: '', items: [], payment_method: 'efectivo', notes: '' });
                   fetchSales();
                   fetchProducts();
                 }
               } catch (err) {
                 console.error(err);
+                setManualSaleError(err.message || 'No pudimos registrar la venta.');
               } finally {
                 setLoading(false);
               }
             }}>
+              {manualSaleError && (
+                <div
+                  style={{
+                    backgroundColor: 'rgba(248, 81, 73, 0.1)',
+                    color: 'var(--danger-color)',
+                    padding: '0.75rem 1rem',
+                    borderRadius: '8px',
+                    marginBottom: '1rem',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  {manualSaleError}
+                </div>
+              )}
               <div className="form-group">
                 <label className="form-label">Nombre del Cliente</label>
                 <input 

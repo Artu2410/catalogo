@@ -1,9 +1,65 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { ShoppingBag, Search, ShoppingCart, Activity, X, Plus, Minus, Check, Image as ImageIcon, Filter } from 'lucide-react';
 import Link from 'next/link';
 import { useCartStore } from './store/cartStore';
+
+function ProductPreviewImage({ src, alt }) {
+  const normalizedSrc = String(src || '').trim();
+
+  if (!normalizedSrc) {
+    return null;
+  }
+
+  if (normalizedSrc.startsWith('/')) {
+    return (
+      <Image
+        src={normalizedSrc}
+        alt={alt}
+        fill
+        unoptimized
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        className="product-image"
+      />
+    );
+  }
+
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={normalizedSrc} alt={alt} className="product-image" />;
+}
+
+function CartPreviewImage({ src, alt }) {
+  const normalizedSrc = String(src || '').trim();
+
+  if (!normalizedSrc) {
+    return null;
+  }
+
+  const sharedStyle = {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+    padding: '2px',
+  };
+
+  if (normalizedSrc.startsWith('/')) {
+    return (
+      <Image
+        src={normalizedSrc}
+        alt={alt}
+        width={56}
+        height={56}
+        unoptimized
+        style={sharedStyle}
+      />
+    );
+  }
+
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={normalizedSrc} alt={alt} style={sharedStyle} />;
+}
 
 export default function Home() {
   const [products, setProducts] = useState([]);
@@ -106,7 +162,14 @@ export default function Home() {
       <header className="header">
         <div className="container header-content">
           <div className="logo">
-            <img src="/images/logo.png" alt="KAREH Logo" style={{ height: '40px', width: 'auto' }} />
+            <Image
+              src="/images/logo.png"
+              alt="KAREH Logo"
+              width={40}
+              height={40}
+              priority
+              style={{ height: '40px', width: 'auto' }}
+            />
             KAREH
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -192,11 +255,7 @@ export default function Home() {
               >
                 {product.image ? (
                   <div className="product-image-container">
-                    <img 
-                      src={product.image} 
-                      alt={product.name}
-                      className="product-image"
-                    />
+                    <ProductPreviewImage src={product.image} alt={product.name} />
                   </div>
                 ) : (
                   <div className="product-image-placeholder">
@@ -297,11 +356,7 @@ export default function Home() {
                           alignItems: 'center',
                           justifyContent: 'center'
                         }}>
-                          <img 
-                            src={item.image} 
-                            alt={item.name} 
-                            style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '2px' }} 
-                          />
+                          <CartPreviewImage src={item.image} alt={item.name} />
                         </div>
                       )}
                       <div style={{ flex: 1 }}>

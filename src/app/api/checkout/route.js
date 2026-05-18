@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
-import { sql } from '@vercel/postgres';
+import { getFormspreeEndpoint } from '@/lib/env';
+import { createSaleWithStockReservation } from '@/lib/sales';
 
 export const dynamic = 'force-dynamic';
-
-const FORMSPREE_ENDPOINT =
-  process.env.FORMSPREE_VENTAS_ENDPOINT || 'https://formspree.io/f/xeenyryl';
 
 function formatPrice(price) {
   return new Intl.NumberFormat('es-AR', {
@@ -44,6 +42,7 @@ function buildOrderMessage({ user, cart, totalEfectivo, totalTransf }) {
 }
 
 async function sendOrderNotification(order) {
+  const endpoint = getFormspreeEndpoint();
   const params = new URLSearchParams({
     name: order.user.name,
     email: order.user.email,
@@ -57,7 +56,7 @@ async function sendOrderNotification(order) {
     _subject: `Nuevo pedido de ${order.user.name} - Catalogo Kareh`,
   });
 
-  const response = await fetch(FORMSPREE_ENDPOINT, {
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       Accept: 'application/json',
@@ -77,7 +76,7 @@ async function sendOrderNotification(order) {
 export async function POST(request) {
   try {
     const data = await request.json();
-    const { user, cart, totalEfectivo, totalTransf } = data;
+    const { user, cart } = data;
     const hasValidUser =
       user?.name?.trim() && user?.email?.trim() && user?.phone?.trim();
 
@@ -90,34 +89,22 @@ export async function POST(request) {
 
     console.log("Procesando pedido para:", user.email);
 
-    await sql`
-      INSERT INTO sales (
-        customer_name, 
-        customer_email, 
-        customer_phone, 
-        items, 
-        total_amount, 
-        payment_method, 
-        source, 
-        notes
-      ) VALUES (
-        ${user.name}, 
-        ${user.email}, 
-        ${user.phone}, 
-        ${JSON.stringify(cart)}, 
-        ${totalTransf},
-        'pendiente', 
-        'web', 
-        ${user.notes || ''}
-      );
-    `;
+    const saleResult = await createSaleWithStockReservation({
+      customerName: user.name,
+      customerEmail: user.email,
+      customerPhone: user.phone,
+      items: cart,
+      paymentMethod: 'pendiente',
+      source: 'web',
+      notes: user.notes || '',
+      priceMode: 'transferencia',
+    });
 
-    for (const item of cart) {
-      await sql`
-        UPDATE products 
-        SET stock = GREATEST(0, stock - ${item.quantity})
-        WHERE id = ${item.id};
-      `;
+    if (saleResult.error) {
+      return NextResponse.json(
+        { error: saleResult.error },
+        { status: saleResult.status }
+      );
     }
 
     console.log('Venta registrada y stock actualizado correctamente');
@@ -125,13 +112,23 @@ export async function POST(request) {
     let notificationSent = false;
 
     try {
-      await sendOrderNotification({ user, cart, totalEfectivo, totalTransf });
+      await sendOrderNotification({
+        user,
+        cart: saleResult.saleItems,
+        totalEfectivo: saleResult.totals.cash,
+        totalTransf: saleResult.totals.transfer,
+      });
       notificationSent = true;
     } catch (notificationError) {
       console.error('Error sending Formspree notification:', notificationError);
     }
 
-    return NextResponse.json({ success: true, notificationSent });
+    return NextResponse.json({
+      success: true,
+      notificationSent,
+      saleId: saleResult.sale.id,
+      totals: saleResult.totals,
+    });
     
   } catch (error) {
     console.error("Error processing order:", error);

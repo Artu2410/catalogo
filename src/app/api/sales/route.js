@@ -1,10 +1,21 @@
 import { NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import { requireAdmin } from '@/lib/auth';
+import { initDb } from '@/lib/db';
+import { createSaleWithStockReservation } from '@/lib/sales';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
+    await initDb();
+
+    const authError = await requireAdmin();
+
+    if (authError) {
+      return authError;
+    }
+
     const sales = await sql`
       SELECT * FROM sales 
       ORDER BY created_at DESC;
@@ -18,51 +29,48 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const body = await request.json();
-    const { 
-      customer_name, 
-      customer_email, 
-      customer_phone, 
-      items, 
-      total_amount, 
-      payment_method, 
-      source, 
-      notes 
-    } = body;
+    await initDb();
 
-    // 1. Insert into sales table
-    const result = await sql`
-      INSERT INTO sales (
-        customer_name, 
-        customer_email, 
-        customer_phone, 
-        items, 
-        total_amount, 
-        payment_method, 
-        source, 
-        notes
-      ) VALUES (
-        ${customer_name}, 
-        ${customer_email}, 
-        ${customer_phone}, 
-        ${JSON.stringify(items)}, 
-        ${total_amount}, 
-        ${payment_method}, 
-        ${source}, 
-        ${notes}
-      ) RETURNING *;
-    `;
+    const authError = await requireAdmin();
 
-    // 2. Update stock for each item
-    for (const item of items) {
-      await sql`
-        UPDATE products 
-        SET stock = GREATEST(0, stock - ${item.quantity})
-        WHERE id = ${item.id};
-      `;
+    if (authError) {
+      return authError;
     }
 
-    return NextResponse.json(result.rows[0]);
+    const body = await request.json();
+    const paymentMethod =
+      body.payment_method === 'transferencia'
+        ? 'transferencia'
+        : body.payment_method === 'pendiente'
+          ? 'pendiente'
+          : 'efectivo';
+    const priceMode =
+      paymentMethod === 'transferencia' || paymentMethod === 'pendiente'
+        ? 'transferencia'
+        : 'efectivo';
+    const saleResult = await createSaleWithStockReservation({
+      customerName: body.customer_name,
+      customerEmail: body.customer_email,
+      customerPhone: body.customer_phone,
+      items: body.items,
+      paymentMethod,
+      source: body.source === 'web' ? 'web' : 'local',
+      notes: body.notes,
+      priceMode,
+    });
+
+    if (saleResult.error) {
+      return NextResponse.json(
+        { error: saleResult.error },
+        { status: saleResult.status }
+      );
+    }
+
+    return NextResponse.json({
+      ...saleResult.sale,
+      items: saleResult.saleItems,
+      totals: saleResult.totals,
+    });
   } catch (error) {
     console.error("Error creating sale:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
