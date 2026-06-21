@@ -219,7 +219,8 @@ export default function AdminPage() {
 
     try {
       const res = await fetch(`/api/sales/${saleId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        credentials: 'include'
       });
 
       if (!res.ok) {
