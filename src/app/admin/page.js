@@ -229,6 +229,11 @@ export default function AdminPage() {
         return;
       }
 
+      // Eliminar del estado local inmediatamente
+      setSales(sales.filter(s => s.id !== saleId));
+      setManualSaleError(''); // Limpiar error
+      
+      // Refrescar desde servidor
       await fetchSales();
     } catch (err) {
       console.error("Error deleting sale:", err);
