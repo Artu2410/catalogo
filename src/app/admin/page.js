@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { ArrowLeft, Plus, Edit, Trash2, Save, X, LogOut, ShoppingBag, History, User, Phone, Mail, DollarSign, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, Save, X, LogOut, ShoppingBag, History, AlertCircle } from 'lucide-react';
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
@@ -38,8 +38,6 @@ export default function AdminPage() {
   });
   const [draftSales, setDraftSales] = useState([]);
   const [showDrafts, setShowDrafts] = useState(false);
-  const [resettingDb, setResettingDb] = useState(false);
-  const [resetMessage, setResetMessage] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -94,53 +92,23 @@ export default function AdminPage() {
     }
   };
 
-  const resetDatabase = async () => {
-    const confirmReset = window.confirm(
-      '⚠️ ¿Estás SEGURO de que deseas BORRAR TODAS las ventas y RESETEAR los productos?\n\nEsta acción NO se puede deshacer.'
-    );
-    
-    if (!confirmReset) return;
 
-    const confirmAgain = window.confirm(
-      '🔴 ÚLTIMA CONFIRMACIÓN: Se borrarán TODOS los datos de ventas.\n\n¿Deseas continuar?'
-    );
-
-    if (!confirmAgain) return;
-
-    setResettingDb(true);
-    setResetMessage('');
-
-    try {
-      const res = await fetch('/api/reset-db', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ confirm: 'BORRAR_TODO' })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setResetMessage(`❌ Error: ${data.error}`);
-        return;
-      }
-
-      setResetMessage(`✅ ${data.message}`);
-      await fetchSales(); // Recargar listado de ventas
-      await fetchProducts(); // Recargar productos
-    } catch (err) {
-      console.error("Error resetting database:", err);
-      setResetMessage('❌ Error al limpiar la base de datos');
-    } finally {
-      setResettingDb(false);
-    }
-  };
 
   async function fetchSales() {
     try {
       const res = await fetch('/api/sales');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("Failed to fetch sales", err);
+        return;
+      }
       const data = await res.json();
-      setSales(data);
+      // Asegurarse de que items es siempre un array
+      const normalized = data.map(s => ({
+        ...s,
+        items: Array.isArray(s.items) ? s.items : []
+      }));
+      setSales(normalized);
     } catch (err) {
       console.error("Failed to fetch sales", err);
     }
@@ -245,43 +213,55 @@ export default function AdminPage() {
   };
 
   // Métodos para edición de ventas
+  // Los borradores locales tienen IDs generados con Date.now() (> 10^12)
+  // Las ventas reales en BD tienen IDs SERIAL de PostgreSQL (números pequeños)
+  const isDraftId = (id) => typeof id === 'number' && id > 1_000_000_000_000;
+
   const editSale = (sale) => {
     setEditingSaleId(sale.id);
     setManualSaleForm({
-      customer_name: sale.customer_name,
-      customer_phone: sale.customer_phone,
-      customer_email: sale.customer_email,
-      items: sale.items,
-      payment_method: sale.payment_method,
+      customer_name: sale.customer_name || '',
+      customer_phone: sale.customer_phone || '',
+      customer_email: sale.customer_email || '',
+      items: Array.isArray(sale.items) ? sale.items : [],
+      payment_method: sale.payment_method || 'efectivo',
       notes: sale.notes || ''
     });
+    setManualSaleError('');
     setShowManualSaleModal(true);
   };
 
   const deleteSale = async (saleId) => {
+    // Si es un borrador local, eliminarlo directamente
+    if (isDraftId(saleId)) {
+      if (!window.confirm('¿Eliminar este borrador?')) return;
+      removeDraftSale(saleId);
+      return;
+    }
+
     if (!window.confirm('¿Estás seguro de que deseas eliminar esta venta?')) return;
+
+    // Optimistic update: eliminar del estado local de inmediato
+    setSales(prev => prev.filter(s => s.id !== saleId));
 
     try {
       const res = await fetch(`/api/sales/${saleId}`, {
-        method: 'DELETE',
-        credentials: 'include'
+        method: 'DELETE'
       });
 
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         setManualSaleError(data.error || 'No se pudo eliminar la venta');
+        // Revertir el optimistic update
+        await fetchSales();
         return;
       }
 
-      // Eliminar del estado local inmediatamente
-      setSales(sales.filter(s => s.id !== saleId));
-      setManualSaleError(''); // Limpiar error
-      
-      // Refrescar desde servidor
-      await fetchSales();
+      setManualSaleError('');
     } catch (err) {
       console.error("Error deleting sale:", err);
-      setManualSaleError('Error al eliminar la venta');
+      setManualSaleError('Error de conexión al eliminar la venta');
+      await fetchSales();
     }
   };
 
@@ -323,20 +303,6 @@ export default function AdminPage() {
             <ArrowLeft size={18} />
             Volver al Catálogo
           </Link>
-          <button 
-            onClick={resetDatabase} 
-            disabled={resettingDb}
-            style={{
-              backgroundColor: 'var(--danger-color)',
-              opacity: resettingDb ? 0.6 : 1,
-              cursor: resettingDb ? 'not-allowed' : 'pointer'
-            }}
-            className="btn"
-            title="Limpiar y resetear base de datos"
-          >
-            <RefreshCw size={18} style={{ animation: resettingDb ? 'spin 1s linear infinite' : 'none' }} />
-            {resettingDb ? 'Limpiando...' : 'Limpiar BD'}
-          </button>
           <button onClick={() => signOut({ callbackUrl: '/' })} className="btn btn-danger">
             <LogOut size={18} />
             Cerrar Sesión
@@ -363,16 +329,22 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {resetMessage && (
+      {manualSaleError && activeTab === 'sales' && (
         <div style={{
           padding: '1rem',
           marginBottom: '1rem',
           borderRadius: '0.5rem',
-          backgroundColor: resetMessage.includes('✅') ? 'rgba(76, 175, 80, 0.1)' : 'rgba(248, 81, 73, 0.1)',
-          border: `1px solid ${resetMessage.includes('✅') ? 'var(--success-color)' : 'var(--danger-color)'}`,
-          color: resetMessage.includes('✅') ? 'var(--success-color)' : 'var(--danger-color)'
+          backgroundColor: 'rgba(248, 81, 73, 0.1)',
+          border: '1px solid var(--danger-color)',
+          color: 'var(--danger-color)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
         }}>
-          {resetMessage}
+          <span>{manualSaleError}</span>
+          <button onClick={() => setManualSaleError('')} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: '0 0.25rem' }}>
+            <X size={16} />
+          </button>
         </div>
       )}
 
@@ -584,12 +556,12 @@ export default function AdminPage() {
                 </button>
               )}
               <button 
-                onClick={() => { resetSaleForm(); setShowManualSaleModal(true); }} 
+                onClick={() => { resetSaleForm(); setManualSaleError(''); setShowManualSaleModal(true); }} 
                 className="btn btn-primary"
                 style={{ width: 'auto' }}
               >
                 <Plus size={18} />
-                Registrar Venta Manual (Local)
+                Registrar Venta
               </button>
             </div>
           </div>
@@ -745,14 +717,13 @@ export default function AdminPage() {
               setLoading(true);
               setManualSaleError('');
               try {
-                const endpoint = editingSaleId && typeof editingSaleId === 'number' && editingSaleId > 1000000000
-                  ? null // Es un borrador local
-                  : editingSaleId 
-                    ? `/api/sales/${editingSaleId}`
-                    : '/api/sales';
+                // Determinar si es un borrador local (ID generado por Date.now())
+                const isLocalDraft = editingSaleId && isDraftId(editingSaleId);
+                // Determinar si es edición de venta real en BD
+                const isEditingDbSale = editingSaleId && !isLocalDraft;
 
-                if (!endpoint) {
-                  // Es un borrador, solo guardarlo localmente
+                if (isLocalDraft) {
+                  // Guardar borrador actualizado localmente
                   saveDraftSale({
                     id: editingSaleId,
                     ...manualSaleForm,
@@ -763,7 +734,11 @@ export default function AdminPage() {
                   return;
                 }
 
-                const method = editingSaleId && typeof editingSaleId === 'number' && editingSaleId < 1000000000 ? 'PUT' : 'POST';
+                const method = isEditingDbSale ? 'PUT' : 'POST';
+                const endpoint = isEditingDbSale
+                  ? `/api/sales/${editingSaleId}`
+                  : '/api/sales';
+
                 const res = await fetch(endpoint, {
                   method,
                   headers: { 'Content-Type': 'application/json' },
@@ -774,18 +749,16 @@ export default function AdminPage() {
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
-                  throw new Error(data.error || 'No pudimos registrar la venta.');
+                  throw new Error(data.error || 'No se pudo guardar la venta.');
                 }
-                if (res.ok) {
-                  setShowManualSaleModal(false);
-                  setManualSaleError('');
-                  resetSaleForm();
-                  fetchSales();
-                  fetchProducts();
-                }
+                setShowManualSaleModal(false);
+                setManualSaleError('');
+                resetSaleForm();
+                await fetchSales();
+                if (!isEditingDbSale) await fetchProducts(); // Solo al crear nueva venta
               } catch (err) {
                 console.error(err);
-                setManualSaleError(err.message || 'No pudimos registrar la venta.');
+                setManualSaleError(err.message || 'No se pudo guardar la venta.');
               } finally {
                 setLoading(false);
               }
