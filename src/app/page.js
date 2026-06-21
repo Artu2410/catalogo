@@ -71,6 +71,9 @@ export default function Home() {
   const [isCheckout, setIsCheckout] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [checkoutWarning, setCheckoutWarning] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
+  const [checkoutErrors, setCheckoutErrors] = useState({});
+  const [paymentMethod, setPaymentMethod] = useState('transferencia');
   
   const { cart, addToCart, removeFromCart, updateQuantity, clearCart } = useCartStore();
 
@@ -93,6 +96,31 @@ export default function Home() {
         setLoading(false);
       });
   }, []);
+
+  const showToast = (message) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const validateCheckoutData = () => {
+    const errors = {};
+    
+    if (!checkoutData.name.trim() || checkoutData.name.trim().length < 3) {
+      errors.name = 'El nombre debe tener al menos 3 caracteres';
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!checkoutData.email.trim() || !emailRegex.test(checkoutData.email)) {
+      errors.email = 'Por favor ingresa un email válido';
+    }
+    
+    if (!checkoutData.phone.trim() || checkoutData.phone.trim().length < 10) {
+      errors.phone = 'Por favor ingresa un teléfono válido';
+    }
+    
+    setCheckoutErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('es-AR', {
@@ -120,6 +148,12 @@ export default function Home() {
 
   const handleCheckout = async (e) => {
     e.preventDefault();
+    
+    if (!validateCheckoutData()) {
+      showToast('Por favor completa correctamente todos los campos');
+      return;
+    }
+
     if (isSubmitting) return;
 
     setIsSubmitting(true);
@@ -140,18 +174,21 @@ export default function Home() {
       
       if (response.ok) {
         if (result.notificationSent === false) {
-          setCheckoutWarning('El pedido se registro, pero no pudimos confirmar el envio del correo a centrokareh@gmail.com.');
+          setCheckoutWarning('✅ Pedido registrado. Nota: No pudimos enviar el email de confirmación, pero recibirás actualizaciones por WhatsApp.');
         }
         clearCart();
         setIsCartOpen(false);
         setIsCheckout(false);
         setShowSuccessModal(true);
       } else {
-        alert(result.error || "Hubo un error al enviar el pedido. Por favor intenta de nuevo.");
+        const errorMsg = result.error === 'Datos de compra invalidos' 
+          ? 'Por favor completa correctamente todos los campos'
+          : result.error || "Hubo un error al enviar el pedido. Por favor intenta de nuevo.";
+        showToast('❌ ' + errorMsg);
       }
     } catch (error) {
       console.error(error);
-      alert("Hubo un error al enviar el pedido.");
+      showToast('❌ Error de conexión. Por favor intenta de nuevo.');
     } finally {
       setIsSubmitting(false);
     }
@@ -285,7 +322,15 @@ export default function Home() {
 
                 <div className="product-actions" style={{ flexDirection: 'column' }}>
                   <button 
-                    onClick={() => addToCart(product)} 
+                    onClick={() => {
+                      const isAlreadyInCart = cart.some(item => item.id === product.id);
+                      addToCart(product);
+                      if (isAlreadyInCart) {
+                        showToast(`📦 Se agregó más de ${product.name}`);
+                      } else {
+                        showToast(`✅ ${product.name} agregado al carrito`);
+                      }
+                    }} 
                     className="btn btn-primary"
                     disabled={product.stock <= 0}
                   >
@@ -339,6 +384,7 @@ export default function Home() {
                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '3rem' }}>
                   <ShoppingCart size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
                   <p>Tu carrito está vacío.</p>
+                  <p style={{ fontSize: '0.85rem', marginTop: '0.5rem' }}>Agrega productos para comenzar</p>
                 </div>
               ) : !isCheckout ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -362,65 +408,139 @@ export default function Home() {
                       <div style={{ flex: 1 }}>
                         <h4 style={{ marginBottom: '0.25rem' }}>{item.name}</h4>
                         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-                          Efectivo: {formatPrice(item.cashPrice)} | Transf: {formatPrice(item.transferPrice)}
+                          💵 {formatPrice(item.cashPrice)} | 💸 {formatPrice(item.transferPrice)}
                         </p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                           <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
-                            <button onClick={() => updateQuantity(item.id, item.quantity - 1)} style={{ padding: '0.25rem 0.5rem', color: 'white' }}><Minus size={14} /></button>
-                            <span style={{ padding: '0 0.5rem', fontSize: '0.9rem' }}>{item.quantity}</span>
-                            <button onClick={() => updateQuantity(item.id, item.quantity + 1)} style={{ padding: '0.25rem 0.5rem', color: 'white' }}><Plus size={14} /></button>
+                            <button onClick={() => updateQuantity(item.id, item.quantity - 1)} style={{ padding: '0.25rem 0.5rem', color: 'white', cursor: 'pointer' }}><Minus size={14} /></button>
+                            <span style={{ padding: '0 0.5rem', fontSize: '0.9rem', minWidth: '30px', textAlign: 'center' }}>{item.quantity}</span>
+                            <button onClick={() => updateQuantity(item.id, item.quantity + 1)} style={{ padding: '0.25rem 0.5rem', color: 'white', cursor: 'pointer' }}><Plus size={14} /></button>
                           </div>
-                          <button onClick={() => removeFromCart(item.id)} style={{ color: 'var(--danger-color)', fontSize: '0.85rem' }}>Eliminar</button>
+                          <button onClick={() => { removeFromCart(item.id); showToast(`❌ ${item.name} removido`); }} style={{ color: 'var(--danger-color)', fontSize: '0.85rem', cursor: 'pointer' }}>Eliminar</button>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <form id="checkout-form" method="POST" onSubmit={handleCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <h3 style={{ marginBottom: '1rem' }}>Datos de Contacto</h3>
-                  <div className="form-group">
-                    <label className="form-label">Nombre Completo</label>
-                    <input type="text" name="name" className="form-control" required value={checkoutData.name} onChange={e => setCheckoutData({...checkoutData, name: e.target.value})} />
+                <div>
+                  <h3 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>📋 Resumen del Pedido</h3>
+                  <div style={{ backgroundColor: 'var(--secondary-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '1.5rem' }}>
+                    {cart.map((item, idx) => (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '0.75rem', borderBottom: idx < cart.length - 1 ? '1px solid var(--border-color)' : 'none', marginBottom: '0.75rem' }}>
+                        <div>
+                          <div style={{ fontWeight: '500' }}>{item.quantity}x {item.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>💵 {formatPrice(item.cashPrice)} | 💸 {formatPrice(item.transferPrice)}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Correo Electrónico</label>
-                    <input type="email" name="email" className="form-control" required value={checkoutData.email} onChange={e => setCheckoutData({...checkoutData, email: e.target.value})} />
+
+                  <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                      <span>Total Efectivo:</span>
+                      <span style={{ fontWeight: 'bold' }}>{formatPrice(cartTotalEfectivo)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '1rem', fontWeight: 'bold', color: 'var(--success-color)', borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
+                      <span>Total Transferencia:</span>
+                      <span>{formatPrice(cartTotalTransf)}</span>
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Teléfono / WhatsApp</label>
-                    <input type="tel" name="phone" className="form-control" required value={checkoutData.phone} onChange={e => setCheckoutData({...checkoutData, phone: e.target.value})} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Notas Adicionales (opcional)</label>
-                    <textarea name="notes" className="form-control" rows="3" value={checkoutData.notes} onChange={e => setCheckoutData({...checkoutData, notes: e.target.value})}></textarea>
-                  </div>
-                </form>
+
+                  <form id="checkout-form" method="POST" onSubmit={handleCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <h3 style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>📋 Completa tus datos</h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Todos los campos son obligatorios</p>
+                    
+                    <div className="form-group">
+                      <label className="form-label">Nombre Completo</label>
+                      <input 
+                        type="text" 
+                        name="name" 
+                        className={`form-control ${checkoutErrors.name ? 'error' : ''}`}
+                        required 
+                        value={checkoutData.name} 
+                        onChange={e => {
+                          setCheckoutData({...checkoutData, name: e.target.value});
+                          if (checkoutErrors.name) setCheckoutErrors({...checkoutErrors, name: ''});
+                        }}
+                        placeholder="Tu nombre completo"
+                      />
+                      {checkoutErrors.name && <p style={{ color: 'var(--danger-color)', fontSize: '0.8rem', marginTop: '0.25rem' }}>❌ {checkoutErrors.name}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Correo Electrónico</label>
+                      <input 
+                        type="email" 
+                        name="email" 
+                        className={`form-control ${checkoutErrors.email ? 'error' : ''}`}
+                        required 
+                        value={checkoutData.email} 
+                        onChange={e => {
+                          setCheckoutData({...checkoutData, email: e.target.value});
+                          if (checkoutErrors.email) setCheckoutErrors({...checkoutErrors, email: ''});
+                        }}
+                        placeholder="tu@email.com"
+                      />
+                      {checkoutErrors.email && <p style={{ color: 'var(--danger-color)', fontSize: '0.8rem', marginTop: '0.25rem' }}>❌ {checkoutErrors.email}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Teléfono / WhatsApp</label>
+                      <input 
+                        type="tel" 
+                        name="phone" 
+                        className={`form-control ${checkoutErrors.phone ? 'error' : ''}`}
+                        required 
+                        value={checkoutData.phone} 
+                        onChange={e => {
+                          setCheckoutData({...checkoutData, phone: e.target.value});
+                          if (checkoutErrors.phone) setCheckoutErrors({...checkoutErrors, phone: ''});
+                        }}
+                        placeholder="Tu número de WhatsApp"
+                      />
+                      {checkoutErrors.phone && <p style={{ color: 'var(--danger-color)', fontSize: '0.8rem', marginTop: '0.25rem' }}>❌ {checkoutErrors.phone}</p>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Notas o Comentarios (opcional)</label>
+                      <textarea 
+                        name="notes" 
+                        className="form-control" 
+                        rows="2" 
+                        value={checkoutData.notes} 
+                        onChange={e => setCheckoutData({...checkoutData, notes: e.target.value})}
+                        placeholder="¿Algo que debamos saber? (ubicación, horario de entrega, etc.)"
+                        style={{ fontSize: '0.9rem' }}
+                      ></textarea>
+                    </div>
+                  </form>
+                </div>
               )}
             </div>
 
             {cart.length > 0 && (
               <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border-color)', backgroundColor: 'rgba(0,0,0,0.2)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.95rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Total Efectivo:</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>💵 Efectivo:</span>
                   <span>{formatPrice(cartTotalEfectivo)}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', fontSize: '1.1rem', fontWeight: 'bold' }}>
-                  <span style={{ color: 'var(--success-color)' }}>Total Transferencia:</span>
+                  <span style={{ color: 'var(--success-color)' }}>💸 Transferencia:</span>
                   <span style={{ color: 'var(--success-color)' }}>{formatPrice(cartTotalTransf)}</span>
                 </div>
                 
                 {!isCheckout ? (
-                  <button onClick={() => setIsCheckout(true)} className="btn btn-primary" style={{ width: '100%', padding: '1rem' }}>
-                    Proceder al Pago
+                  <button onClick={() => { setCheckoutErrors({}); setIsCheckout(true); }} className="btn btn-primary" style={{ width: '100%', padding: '1rem' }}>
+                    Proceder al Pago ➜
                   </button>
                 ) : (
                   <div style={{ display: 'flex', gap: '1rem' }}>
                     <button onClick={() => setIsCheckout(false)} className="btn btn-secondary" style={{ flex: 1 }} disabled={isSubmitting}>
-                      Volver
+                      ← Volver
                     </button>
                     <button form="checkout-form" type="submit" className="btn btn-primary" style={{ flex: 2 }} disabled={isSubmitting}>
-                      {isSubmitting ? 'Enviando...' : 'Confirmar Compra'}
+                      {isSubmitting ? '⏳ Enviando...' : '✓ Confirmar Compra'}
                     </button>
                   </div>
                 )}
@@ -437,14 +557,36 @@ export default function Home() {
               <Check size={48} />
             </div>
             <h2>¡Pedido enviado con éxito!</h2>
-            <p>Gracias por confiar en KAREH. Nos pondremos en contacto contigo a la brevedad para coordinar el pago y la entrega.</p>
+            <p style={{ marginBottom: '0.5rem' }}>Gracias por confiar en KAREH. 🙏</p>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Nos pondremos en contacto contigo a través de WhatsApp a la brevedad para coordinar el pago y la entrega.</p>
             {checkoutWarning && (
-              <p style={{ marginTop: '1rem', color: '#f5c46b' }}>{checkoutWarning}</p>
+              <p style={{ marginTop: '1rem', color: '#f5c46b', fontSize: '0.9rem' }}>{checkoutWarning}</p>
             )}
-            <button onClick={() => { setShowSuccessModal(false); setCheckoutWarning(''); }} className="btn btn-primary" style={{ marginTop: '1.5rem', width: 'auto', padding: '0.75rem 2rem' }}>
-              Entendido
-            </button>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+              <button onClick={() => { setShowSuccessModal(false); setCheckoutWarning(''); }} className="btn btn-primary" style={{ flex: 1 }}>
+                Entendido
+              </button>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: '2rem',
+          right: '2rem',
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          color: 'white',
+          padding: '1rem 1.5rem',
+          borderRadius: '8px',
+          zIndex: 2000,
+          animation: 'slideInUp 0.3s ease',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          maxWidth: '300px'
+        }}>
+          {toastMessage}
         </div>
       )}
     </>

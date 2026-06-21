@@ -80,9 +80,25 @@ export async function POST(request) {
     const hasValidUser =
       user?.name?.trim() && user?.email?.trim() && user?.phone?.trim();
 
-    if (!hasValidUser || !Array.isArray(cart) || cart.length === 0) {
+    if (!hasValidUser) {
       return NextResponse.json(
-        { error: 'Datos de compra invalidos' },
+        { error: 'Por favor completa correctamente todos los campos requeridos' },
+        { status: 400 }
+      );
+    }
+
+    if (!Array.isArray(cart) || cart.length === 0) {
+      return NextResponse.json(
+        { error: 'El carrito está vacío' },
+        { status: 400 }
+      );
+    }
+
+    // Validación básica de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(user.email.trim())) {
+      return NextResponse.json(
+        { error: 'El email no es válido' },
         { status: 400 }
       );
     }
@@ -90,13 +106,13 @@ export async function POST(request) {
     console.log("Procesando pedido para:", user.email);
 
     const saleResult = await createSaleWithStockReservation({
-      customerName: user.name,
-      customerEmail: user.email,
-      customerPhone: user.phone,
+      customerName: user.name.trim(),
+      customerEmail: user.email.trim(),
+      customerPhone: user.phone.trim(),
       items: cart,
       paymentMethod: 'pendiente',
       source: 'web',
-      notes: user.notes || '',
+      notes: user.notes?.trim() || '',
       priceMode: 'transferencia',
     });
 
@@ -132,6 +148,6 @@ export async function POST(request) {
     
   } catch (error) {
     console.error("Error processing order:", error);
-    return NextResponse.json({ error: 'Failed to process order' }, { status: 500 });
+    return NextResponse.json({ error: 'No pudimos procesar tu pedido. Por favor intenta de nuevo.' }, { status: 500 });
   }
 }

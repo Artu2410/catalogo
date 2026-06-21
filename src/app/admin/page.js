@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { ArrowLeft, Plus, Edit, Trash2, Save, X, LogOut, ShoppingBag, History, User, Phone, Mail, DollarSign } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, Save, X, LogOut, ShoppingBag, History, User, Phone, Mail, DollarSign, AlertCircle } from 'lucide-react';
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
@@ -27,13 +27,17 @@ export default function AdminPage() {
   const [sales, setSales] = useState([]);
   const [showManualSaleModal, setShowManualSaleModal] = useState(false);
   const [manualSaleError, setManualSaleError] = useState('');
+  const [editingSaleId, setEditingSaleId] = useState(null);
   const [manualSaleForm, setManualSaleForm] = useState({
     customer_name: '',
     customer_phone: '',
+    customer_email: '',
     items: [], // [{id, name, quantity, price}]
     payment_method: 'efectivo',
     notes: ''
   });
+  const [draftSales, setDraftSales] = useState([]);
+  const [showDrafts, setShowDrafts] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -49,8 +53,44 @@ export default function AdminPage() {
 
       fetchProducts();
       fetchSales();
+      loadDraftSales();
     }
   }, [router, session?.user?.role, status]);
+
+  // Cargar borradores desde localStorage
+  const loadDraftSales = () => {
+    try {
+      const drafts = localStorage.getItem('draftSales');
+      if (drafts) {
+        setDraftSales(JSON.parse(drafts));
+      }
+    } catch (err) {
+      console.error("Error loading draft sales", err);
+    }
+  };
+
+  // Guardar borrador en localStorage
+  const saveDraftSale = (sale) => {
+    try {
+      const updatedDrafts = draftSales.filter(d => d.id !== sale.id);
+      updatedDrafts.push(sale);
+      localStorage.setItem('draftSales', JSON.stringify(updatedDrafts));
+      setDraftSales(updatedDrafts);
+    } catch (err) {
+      console.error("Error saving draft sale", err);
+    }
+  };
+
+  // Eliminar borrador de localStorage
+  const removeDraftSale = (saleId) => {
+    try {
+      const updated = draftSales.filter(d => d.id !== saleId);
+      localStorage.setItem('draftSales', JSON.stringify(updated));
+      setDraftSales(updated);
+    } catch (err) {
+      console.error("Error removing draft sale", err);
+    }
+  };
 
   async function fetchSales() {
     try {
@@ -61,7 +101,6 @@ export default function AdminPage() {
       console.error("Failed to fetch sales", err);
     }
   }
-
 
   async function fetchProducts() {
     try {
@@ -159,6 +198,63 @@ export default function AdminPage() {
       console.error("Failed to delete product", err);
       setLoading(false);
     }
+  };
+
+  // Métodos para edición de ventas
+  const editSale = (sale) => {
+    setEditingSaleId(sale.id);
+    setManualSaleForm({
+      customer_name: sale.customer_name,
+      customer_phone: sale.customer_phone,
+      customer_email: sale.customer_email,
+      items: sale.items,
+      payment_method: sale.payment_method,
+      notes: sale.notes || ''
+    });
+    setShowManualSaleModal(true);
+  };
+
+  const deleteSale = async (saleId) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar esta venta?')) return;
+
+    try {
+      const res = await fetch(`/api/sales/${saleId}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setManualSaleError(data.error || 'No se pudo eliminar la venta');
+        return;
+      }
+
+      await fetchSales();
+    } catch (err) {
+      console.error("Error deleting sale:", err);
+      setManualSaleError('Error al eliminar la venta');
+    }
+  };
+
+  const saveSaleToDraft = () => {
+    const draftId = editingSaleId || Date.now();
+    saveDraftSale({
+      id: draftId,
+      ...manualSaleForm,
+      isNew: !editingSaleId
+    });
+    alert('Venta guardada como borrador localmente');
+  };
+
+  const resetSaleForm = () => {
+    setEditingSaleId(null);
+    setManualSaleForm({
+      customer_name: '',
+      customer_phone: '',
+      customer_email: '',
+      items: [],
+      payment_method: 'efectivo',
+      notes: ''
+    });
   };
 
   if (status === 'loading' || (status === 'authenticated' && session?.user?.role !== 'admin')) {
@@ -399,15 +495,84 @@ export default function AdminPage() {
         <div className="animate-fade-in">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
             <h2>Historial de Ventas</h2>
-            <button 
-              onClick={() => setShowManualSaleModal(true)} 
-              className="btn btn-primary"
-              style={{ width: 'auto' }}
-            >
-              <Plus size={18} />
-              Registrar Venta Manual (Local)
-            </button>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              {draftSales.length > 0 && (
+                <button 
+                  onClick={() => setShowDrafts(!showDrafts)} 
+                  className="btn btn-secondary"
+                  style={{ width: 'auto' }}
+                >
+                  <AlertCircle size={18} />
+                  Borradores ({draftSales.length})
+                </button>
+              )}
+              <button 
+                onClick={() => { resetSaleForm(); setShowManualSaleModal(true); }} 
+                className="btn btn-primary"
+                style={{ width: 'auto' }}
+              >
+                <Plus size={18} />
+                Registrar Venta Manual (Local)
+              </button>
+            </div>
           </div>
+
+          {/* Borradores guardados localmente */}
+          {showDrafts && draftSales.length > 0 && (
+            <div className="card" style={{ marginBottom: '1.5rem', borderColor: 'var(--warning-color)', borderLeftWidth: '4px' }}>
+              <h3 style={{ marginBottom: '1rem', color: 'var(--warning-color)' }}>📋 Ventas Guardadas Localmente</h3>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}>
+                      <th style={{ padding: '0.75rem 0' }}>Cliente</th>
+                      <th>Productos</th>
+                      <th>Método Pago</th>
+                      <th style={{ textAlign: 'right' }}>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {draftSales.map(draft => (
+                      <tr key={draft.id} style={{ borderBottom: '1px solid rgba(48, 54, 61, 0.5)', backgroundColor: 'rgba(255, 193, 7, 0.05)' }}>
+                        <td style={{ padding: '0.75rem 0', fontWeight: '600' }}>
+                          {draft.customer_name}
+                          {draft.customer_phone && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{draft.customer_phone}</div>}
+                        </td>
+                        <td style={{ maxWidth: '200px' }}>
+                          <div style={{ fontSize: '0.85rem' }}>
+                            {draft.items.map((item, idx) => (
+                              <div key={idx}>{item.quantity}x {item.name}</div>
+                            ))}
+                          </div>
+                        </td>
+                        <td>{draft.payment_method}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                            <button 
+                              onClick={() => editSale(draft)}
+                              className="btn btn-secondary"
+                              style={{ padding: '0.4rem 0.6rem', width: 'auto', fontSize: '0.85rem' }}
+                              title="Editar"
+                            >
+                              <Edit size={14} />
+                            </button>
+                            <button 
+                              onClick={() => removeDraftSale(draft.id)}
+                              className="btn btn-danger"
+                              style={{ padding: '0.4rem 0.6rem', width: 'auto', fontSize: '0.85rem' }}
+                              title="Eliminar borrador"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           <div className="card">
             <div style={{ overflowX: 'auto' }}>
@@ -420,6 +585,7 @@ export default function AdminPage() {
                     <th>Productos</th>
                     <th>Total</th>
                     <th>Estado</th>
+                    <th style={{ textAlign: 'right' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -452,11 +618,31 @@ export default function AdminPage() {
                           {sale.payment_method}
                         </span>
                       </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                          <button 
+                            onClick={() => editSale(sale)}
+                            className="btn btn-secondary"
+                            style={{ padding: '0.5rem', width: 'auto' }}
+                            title="Editar"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button 
+                            onClick={() => deleteSale(sale.id)}
+                            className="btn btn-danger"
+                            style={{ padding: '0.5rem', width: 'auto' }}
+                            title="Eliminar"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                   {sales.length === 0 && (
                     <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-secondary)' }}>
+                      <td colSpan="7" style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-secondary)' }}>
                         No hay ventas registradas.
                       </td>
                     </tr>
@@ -473,8 +659,8 @@ export default function AdminPage() {
         <div className="modal-overlay">
           <div className="modal-content animate-fade-in" style={{ maxWidth: '600px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2>Registrar Venta Local</h2>
-              <button onClick={() => setShowManualSaleModal(false)} style={{ color: 'var(--text-secondary)' }}><X size={24} /></button>
+              <h2>{editingSaleId ? 'Editar Venta' : 'Registrar Venta Local'}</h2>
+              <button onClick={() => { setShowManualSaleModal(false); resetSaleForm(); }} style={{ color: 'var(--text-secondary)' }}><X size={24} /></button>
             </div>
             
             <form onSubmit={async (e) => {
@@ -482,8 +668,27 @@ export default function AdminPage() {
               setLoading(true);
               setManualSaleError('');
               try {
-                const res = await fetch('/api/sales', {
-                  method: 'POST',
+                const endpoint = editingSaleId && typeof editingSaleId === 'number' && editingSaleId > 1000000000
+                  ? null // Es un borrador local
+                  : editingSaleId 
+                    ? `/api/sales/${editingSaleId}`
+                    : '/api/sales';
+
+                if (!endpoint) {
+                  // Es un borrador, solo guardarlo localmente
+                  saveDraftSale({
+                    id: editingSaleId,
+                    ...manualSaleForm,
+                    isNew: true
+                  });
+                  setShowManualSaleModal(false);
+                  resetSaleForm();
+                  return;
+                }
+
+                const method = editingSaleId && typeof editingSaleId === 'number' && editingSaleId < 1000000000 ? 'PUT' : 'POST';
+                const res = await fetch(endpoint, {
+                  method,
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                     ...manualSaleForm,
@@ -497,7 +702,7 @@ export default function AdminPage() {
                 if (res.ok) {
                   setShowManualSaleModal(false);
                   setManualSaleError('');
-                  setManualSaleForm({ customer_name: '', customer_phone: '', items: [], payment_method: 'efectivo', notes: '' });
+                  resetSaleForm();
                   fetchSales();
                   fetchProducts();
                 }
@@ -530,6 +735,15 @@ export default function AdminPage() {
                   required 
                   value={manualSaleForm.customer_name}
                   onChange={e => setManualSaleForm({...manualSaleForm, customer_name: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email (opcional)</label>
+                <input 
+                  type="email" 
+                  className="form-control" 
+                  value={manualSaleForm.customer_email || ''}
+                  onChange={e => setManualSaleForm({...manualSaleForm, customer_email: e.target.value})}
                 />
               </div>
               <div className="form-group">
@@ -567,27 +781,45 @@ export default function AdminPage() {
               </div>
 
               <div style={{ marginBottom: '1.5rem' }}>
+                {manualSaleForm.items.length > 0 && (
+                  <h4 style={{ fontSize: '0.9rem', marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>Productos en esta venta:</h4>
+                )}
                 {manualSaleForm.items.map((item, idx) => (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', padding: '0.5rem 1rem', borderRadius: '4px', marginBottom: '0.5rem' }}>
-                    <span>{item.name}</span>
+                    <div>
+                      <div>{item.name}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>${item.price || 0} c/u</div>
+                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <input 
                         type="number" 
-                        style={{ width: '60px', padding: '0.2rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'white' }}
+                        min="1"
+                        style={{ width: '60px', padding: '0.4rem', background: 'transparent', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px', textAlign: 'center' }}
                         value={item.quantity}
                         onChange={e => {
                           const newItems = [...manualSaleForm.items];
-                          newItems[idx].quantity = Number(e.target.value);
+                          newItems[idx].quantity = Math.max(1, Number(e.target.value));
                           setManualSaleForm({...manualSaleForm, items: newItems});
                         }}
                       />
                       <button type="button" onClick={() => {
                         const newItems = manualSaleForm.items.filter((_, i) => i !== idx);
                         setManualSaleForm({...manualSaleForm, items: newItems});
-                      }} style={{ color: 'var(--danger-color)' }}><X size={16} /></button>
+                      }} style={{ color: 'var(--danger-color)', padding: '0.4rem' }}><X size={16} /></button>
                     </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Notas (opcional)</label>
+                <textarea 
+                  className="form-control" 
+                  style={{ minHeight: '60px', fontFamily: 'monospace' }}
+                  value={manualSaleForm.notes}
+                  onChange={e => setManualSaleForm({...manualSaleForm, notes: e.target.value})}
+                  placeholder="Observaciones sobre la venta..."
+                />
               </div>
 
               <div className="form-group">
@@ -599,12 +831,21 @@ export default function AdminPage() {
                 >
                   <option value="efectivo">Efectivo</option>
                   <option value="transferencia">Transferencia</option>
+                  <option value="pendiente">Pendiente</option>
                 </select>
               </div>
 
-              <button type="submit" className="btn btn-primary" style={{ marginTop: '1rem' }} disabled={loading || manualSaleForm.items.length === 0}>
-                {loading ? 'Registrando...' : 'Confirmar Venta'}
-              </button>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={loading || manualSaleForm.items.length === 0}>
+                  {loading ? 'Registrando...' : editingSaleId ? 'Actualizar Venta' : 'Confirmar Venta'}
+                </button>
+                <button type="button" onClick={saveSaleToDraft} className="btn btn-secondary" style={{ width: 'auto' }} disabled={loading || manualSaleForm.items.length === 0}>
+                  💾 Guardar Borrador
+                </button>
+                <button type="button" onClick={() => { setShowManualSaleModal(false); resetSaleForm(); }} className="btn btn-secondary" style={{ width: 'auto' }}>
+                  <X size={18} />
+                </button>
+              </div>
             </form>
           </div>
         </div>
