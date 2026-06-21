@@ -96,11 +96,6 @@ export async function DELETE(request, { params }) {
       DELETE FROM sales WHERE id = ${saleId}
     `;
 
-    // Eliminar los items asociados
-    await sql`
-      DELETE FROM sale_items WHERE sale_id = ${saleId}
-    `;
-
     return NextResponse.json({ success: true, message: 'Venta eliminada correctamente' });
   } catch (error) {
     console.error('Error deleting sale:', error);

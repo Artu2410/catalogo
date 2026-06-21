@@ -26,8 +26,7 @@ export async function POST(request) {
 
     console.log('🔴 Limpiando base de datos...');
 
-    // 1. Eliminar todas las ventas y sus items
-    await sql`DELETE FROM sale_items`;
+    // 1. Eliminar todas las ventas
     await sql`DELETE FROM sales`;
 
     // 2. Resetear todos los productos al stock inicial
@@ -46,7 +45,7 @@ export async function POST(request) {
     for (const product of productsData) {
       await sql`
         UPDATE products 
-        SET stock = ${product.stock}, reserved_stock = 0
+        SET stock = ${product.stock}
         WHERE id = ${product.id}
       `;
     }
