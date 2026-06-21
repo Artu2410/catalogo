@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { ArrowLeft, Plus, Edit, Trash2, Save, X, LogOut, ShoppingBag, History, User, Phone, Mail, DollarSign, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, Save, X, LogOut, ShoppingBag, History, User, Phone, Mail, DollarSign, AlertCircle, RefreshCw } from 'lucide-react';
 
 export default function AdminPage() {
   const { data: session, status } = useSession();
@@ -38,6 +38,8 @@ export default function AdminPage() {
   });
   const [draftSales, setDraftSales] = useState([]);
   const [showDrafts, setShowDrafts] = useState(false);
+  const [resettingDb, setResettingDb] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -89,6 +91,48 @@ export default function AdminPage() {
       setDraftSales(updated);
     } catch (err) {
       console.error("Error removing draft sale", err);
+    }
+  };
+
+  const resetDatabase = async () => {
+    const confirmReset = window.confirm(
+      '⚠️ ¿Estás SEGURO de que deseas BORRAR TODAS las ventas y RESETEAR los productos?\n\nEsta acción NO se puede deshacer.'
+    );
+    
+    if (!confirmReset) return;
+
+    const confirmAgain = window.confirm(
+      '🔴 ÚLTIMA CONFIRMACIÓN: Se borrarán TODOS los datos de ventas.\n\n¿Deseas continuar?'
+    );
+
+    if (!confirmAgain) return;
+
+    setResettingDb(true);
+    setResetMessage('');
+
+    try {
+      const res = await fetch('/api/reset-db', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'BORRAR_TODO' })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setResetMessage(`❌ Error: ${data.error}`);
+        return;
+      }
+
+      setResetMessage(`✅ ${data.message}`);
+      await fetchSales(); // Recargar listado de ventas
+      await fetchProducts(); // Recargar productos
+    } catch (err) {
+      console.error("Error resetting database:", err);
+      setResetMessage('❌ Error al limpiar la base de datos');
+    } finally {
+      setResettingDb(false);
     }
   };
 
@@ -279,6 +323,20 @@ export default function AdminPage() {
             <ArrowLeft size={18} />
             Volver al Catálogo
           </Link>
+          <button 
+            onClick={resetDatabase} 
+            disabled={resettingDb}
+            style={{
+              backgroundColor: 'var(--danger-color)',
+              opacity: resettingDb ? 0.6 : 1,
+              cursor: resettingDb ? 'not-allowed' : 'pointer'
+            }}
+            className="btn"
+            title="Limpiar y resetear base de datos"
+          >
+            <RefreshCw size={18} style={{ animation: resettingDb ? 'spin 1s linear infinite' : 'none' }} />
+            {resettingDb ? 'Limpiando...' : 'Limpiar BD'}
+          </button>
           <button onClick={() => signOut({ callbackUrl: '/' })} className="btn btn-danger">
             <LogOut size={18} />
             Cerrar Sesión
@@ -304,6 +362,19 @@ export default function AdminPage() {
           Ventas y Registros
         </button>
       </div>
+
+      {resetMessage && (
+        <div style={{
+          padding: '1rem',
+          marginBottom: '1rem',
+          borderRadius: '0.5rem',
+          backgroundColor: resetMessage.includes('✅') ? 'rgba(76, 175, 80, 0.1)' : 'rgba(248, 81, 73, 0.1)',
+          border: `1px solid ${resetMessage.includes('✅') ? 'var(--success-color)' : 'var(--danger-color)'}`,
+          color: resetMessage.includes('✅') ? 'var(--success-color)' : 'var(--danger-color)'
+        }}>
+          {resetMessage}
+        </div>
+      )}
 
       {activeTab === 'products' ? (
         <>
