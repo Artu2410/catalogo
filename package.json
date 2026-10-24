@@ -2,35 +2,38 @@
   "name": "kareh-catalogo",
   "version": "0.1.0",
   "private": true,
-  "author": "Jose Arturo Azocar Perez",
-  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "next lint"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^0.9.5",
     "@vercel/postgres": "^0.10.0",
     "bcryptjs": "^3.0.3",
-    "lucide-react": "^1.14.0",
-    "next": "16.4.3",
-    "next-auth": "^4.24.14",
-    "nodemailer": "10.2.1",
-    "postcss": "^8.5.14",
-    "react": "19.3.1",
-    "react-dom": "19.3.1",
-    "zustand": "^5.0.13"
+    "lucide-react": "^1.61.0",
+    "next": "^14.2.24",
+    "next-auth": "^4.24.15",
+    "nodemailer": "^7.0.13",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sharp": "^0.33.5",
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
-    "eslint": "^9",
-    "eslint-config-next": "16.4.3"
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.24",
+    "postcss": "^8.4.35",
+    "typescript": "^5.3.3"
   },
   "overrides": {
-    "nodemailer": "$nodemailer",
+    "ws": "^8.18.0",
     "brace-expansion": "^2.0.1",
     "nanoid": "^5.0.9",
-    "ws": "^8.18.0",
     "source-map-js": "^1.2.1"
   }
 }
